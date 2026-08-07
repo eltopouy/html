@@ -1,0 +1,21 @@
+{
+  "name": "editor-web-educode",
+  "version": "1.0.0",
+  "description": "Editor web de código HTML, CSS y JS en tiempo real para estudiantes",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": [
+    "education",
+    "code-editor",
+    "html",
+    "css",
+    "javascript",
+    "monaco-editor",
+    "onecompiler",
+    "codepen"
+  ],
+  "author": "EduCode",
+  "license": "MIT"
+}

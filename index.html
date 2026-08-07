@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="EduCode Studio - Editor web de código HTML, CSS y JavaScript para estudiantes y práctica en vivo">
+  <title>EduCode Studio | Editor de Código HTML, CSS y JS</title>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- CodeMirror Core & Themes -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+
+  <!-- Application Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div id="app-container">
+    
+    <!-- Top Navigation Header -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="brand-icon">
+          <i data-lucide="code-2"></i>
+        </div>
+        <span class="brand-title">EduCode Studio</span>
+        <span class="brand-badge">HTML • CSS • JS</span>
+      </div>
+
+      <div class="nav-controls">
+        <!-- Template & Exercise Selector -->
+        <div class="select-wrapper" title="Seleccionar ejercicio o plantilla inicial">
+          <select id="template-select"></select>
+          <i data-lucide="chevron-down" class="select-icon"></i>
+        </div>
+
+        <!-- Auto Run Toggle -->
+        <label class="toggle-switch" title="Ejecución automática en vivo al escribir">
+          <span class="switch">
+            <input type="checkbox" id="autorun-toggle" checked>
+            <span class="slider"></span>
+          </span>
+          <span>Auto-run</span>
+        </label>
+
+        <!-- Run Button -->
+        <button id="btn-run" class="btn btn-primary" title="Ejecutar código (Ctrl + Enter)">
+          <i data-lucide="play"></i>
+          <span>Ejecutar</span>
+        </button>
+
+        <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 4px;"></div>
+
+        <!-- Format Code -->
+        <button id="btn-format" class="btn btn-secondary" title="Formatear e indentar código">
+          <i data-lucide="wand-2"></i>
+          <span>Formatear</span>
+        </button>
+
+        <!-- Import File -->
+        <button id="btn-import" class="btn btn-secondary" title="Abrir archivo .html, .css o .js local">
+          <i data-lucide="folder-open"></i>
+          <span>Abrir</span>
+        </button>
+        <input type="file" id="import-file-input" accept=".html,.css,.js" style="display: none;">
+
+        <!-- Export Dropdown / Actions -->
+        <button id="btn-export-zip" class="btn btn-secondary" title="Descargar proyecto completo en archivo .ZIP">
+          <i data-lucide="archive"></i>
+          <span>ZIP</span>
+        </button>
+
+        <button id="btn-export-html" class="btn btn-secondary" title="Descargar como único archivo .HTML ejecutable">
+          <i data-lucide="file-code"></i>
+          <span>HTML</span>
+        </button>
+
+        <button id="btn-reset" class="btn btn-secondary" title="Restablecer código a la plantilla original">
+          <i data-lucide="rotate-ccw"></i>
+        </button>
+
+        <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 4px;"></div>
+
+        <!-- Layout Switchers -->
+        <div class="layout-controls" style="display: flex; gap: 4px;">
+          <button class="btn btn-icon-only active" data-layout="side" title="Modo División Vertical (Side by Side)">
+            <i data-lucide="columns-2"></i>
+          </button>
+          <button class="btn btn-icon-only" data-layout="vertical" title="Modo División Horizontal (Arriba / Abajo)">
+            <i data-lucide="rows-2"></i>
+          </button>
+          <button class="btn btn-icon-only" data-layout="preview" title="Solo Vista Previa">
+            <i data-lucide="eye"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace Split Container -->
+    <main id="workspace-body" class="workspace-body">
+      
+      <!-- Left Pane: Code Editor Section -->
+      <section class="pane-editor">
+        <div class="tab-bar">
+          <div class="tabs-group">
+            <button class="tab-btn active" data-tab="html">
+              <i data-lucide="file-code" class="tab-icon"></i>
+              <span>index.html</span>
+            </button>
+            <button class="tab-btn" data-tab="css">
+              <i data-lucide="palette" class="tab-icon"></i>
+              <span>styles.css</span>
+            </button>
+            <button class="tab-btn" data-tab="js">
+              <i data-lucide="file-json" class="tab-icon"></i>
+              <span>script.js</span>
+            </button>
+          </div>
+
+          <div class="tab-actions">
+            <span style="font-size: 0.75rem; color: var(--text-muted); margin-right: 8px;">CodeEditor Engine</span>
+          </div>
+        </div>
+
+        <div class="editor-container">
+          <div id="monaco-editor-element"></div>
+        </div>
+      </section>
+
+      <!-- Pane Drag Splitter -->
+      <div id="pane-resizer" class="pane-resizer"></div>
+
+      <!-- Right Pane: Live Preview & Virtual Console -->
+      <section class="pane-preview-console">
+        <!-- Preview Header -->
+        <div class="preview-header">
+          <div class="preview-title">
+            <span class="live-dot"></span>
+            <span>Vista Previa en Vivo</span>
+          </div>
+          <div class="preview-actions">
+            <button id="btn-fullscreen" class="btn btn-icon-only" title="Pantalla Completa">
+              <i data-lucide="maximize-2"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Simulated Browser Chrome -->
+        <div class="browser-chrome">
+          <!-- Tab Bar -->
+          <div class="browser-tabs">
+            <div class="browser-tab active" id="browser-tab-active">
+              <svg class="browser-tab-favicon" viewBox="0 0 16 16" width="14" height="14">
+                <rect width="16" height="16" rx="3" fill="#3b82f6"/>
+                <text x="8" y="12" text-anchor="middle" font-size="11" fill="white" font-weight="bold">W</text>
+              </svg>
+              <span class="browser-tab-title" id="browser-tab-title">Mi Primera Página Web</span>
+              <button class="browser-tab-close" title="Cerrar pestaña">×</button>
+            </div>
+            <button class="browser-tab-new" title="Nueva pestaña">+</button>
+          </div>
+          <!-- Navigation Bar -->
+          <div class="browser-navbar">
+            <div class="browser-nav-buttons">
+              <button class="browser-nav-btn" title="Atrás">
+                <i data-lucide="arrow-left" style="width:14px;height:14px;"></i>
+              </button>
+              <button class="browser-nav-btn" title="Adelante">
+                <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+              </button>
+              <button class="browser-nav-btn" title="Recargar">
+                <i data-lucide="rotate-cw" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+            <div class="browser-url-bar">
+              <i data-lucide="lock" style="width:12px;height:12px;color:#3fb950;flex-shrink:0;"></i>
+              <span class="browser-url-text" id="browser-url-text">https://mi-proyecto.educode.studio/index.html</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rendered Iframe -->
+        <div class="iframe-container">
+          <iframe id="preview-iframe" title="Result preview" sandbox="allow-scripts allow-modals allow-forms allow-same-origin"></iframe>
+        </div>
+
+        <!-- Interactive Virtual Console Pane -->
+        <div class="console-pane">
+          <div class="console-header" title="Haz clic para colapsar/expandir la consola">
+            <div class="console-title">
+              <i data-lucide="terminal" style="width: 16px; height: 16px; color: var(--accent-blue);"></i>
+              <span>Consola Virtual</span>
+              <span id="console-badge" class="console-badge">0 mensajes</span>
+            </div>
+            <div class="console-actions">
+              <button id="btn-clear-console" class="btn btn-icon-only" style="padding: 2px 6px;" title="Limpiar Consola">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="console-output" class="console-output"></div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Footer Status Bar -->
+    <footer class="statusbar">
+      <div class="status-item">
+        <i data-lucide="check-circle-2" style="width: 14px; height: 14px; color: var(--accent-primary);"></i>
+        <span>Listo para programar</span>
+      </div>
+      <div class="status-item">
+        <span>EduCode Studio v1.0.0</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Reset Confirmation Modal -->
+  <div id="reset-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-title">⚠️ Restablecer Código</div>
+      <div class="modal-body">
+        ¿Estás seguro de que deseas restablecer el código a la plantilla inicial? Perderás cualquier cambio que no hayas descargado o guardado.
+      </div>
+      <div class="modal-footer">
+        <button id="btn-modal-cancel" class="btn btn-secondary">Cancelar</button>
+        <button id="btn-modal-confirm" class="btn btn-primary" style="background: var(--accent-red); border-color: transparent;">Restablecer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Scripts (loaded in dependency order, NO modules) -->
+  <script src="js/templates.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/runner.js"></script>
+  <script src="js/exporter.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
