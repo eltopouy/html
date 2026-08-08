@@ -85,14 +85,7 @@
     tabTitleEl.textContent = pageTitle;
 
     // Update the simulated URL bar
-    if (urlTextEl) {
-      // Create a slug from the title for the fake URL
-      var slug = pageTitle
-        .toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      urlTextEl.textContent = 'https://' + (slug || 'mi-proyecto') + '.educode.studio/index.html';
+      urlTextEl.textContent = 'https://html.servicioti.com.uy';
     }
   }
 
