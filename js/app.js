@@ -258,7 +258,7 @@
     document.getElementById('btn-modal-confirm').addEventListener('click', function () {
       document.getElementById('reset-modal').classList.remove('show');
       var currentTemplate = document.getElementById('template-select').value;
-      var template = TEMPLATES[currentTemplate] || TEMPLATES['html-basic'];
+      var template = TEMPLATES[currentTemplate] || TEMPLATES['blank'];
       codeEditor.setCode(template);
       updateBrowserTab(template.html);
       clearConsole();
@@ -334,7 +334,7 @@
     codeRunner = new CodeRunner(previewIframe, handleConsoleLog);
 
     // 3. Load saved code or default template
-    var savedCode = loadSavedCode() || TEMPLATES['html-basic'];
+    var savedCode = loadSavedCode() || TEMPLATES['blank'];
 
     // 4. Init editor
     codeEditor = new CodeEditor(editorContainer, onCodeChange);

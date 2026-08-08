@@ -1,8 +1,16 @@
 /**
  * EduCode Studio - Starter Templates & Educational Exercises
+ * Desarrollado por Andrés Franchi Ugartemendía para estudiantes de Liceos y UTU
  */
 
 var TEMPLATES = {
+  'blank': {
+    name: '📝 Documento en Blanco',
+    html: '',
+    css: '',
+    js: ''
+  },
+
   'html-basic': {
     name: '🚀 Estructura Básica HTML5',
     html: '<!DOCTYPE html>\n<html lang="es">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Mi Primera Página Web</title>\n</head>\n<body>\n\n  <header>\n    <h1>👋 ¡Bienvenidos a mi sitio web!</h1>\n    <nav>\n      <a href="#sobre-mi">Sobre mí</a> |\n      <a href="#tecnologias">Tecnologías</a> |\n      <a href="#contacto">Contacto</a>\n    </nav>\n  </header>\n\n  <hr>\n\n  <main>\n    <section id="sobre-mi">\n      <h2>📌 Sobre mí</h2>\n      <p>Soy un estudiante aprendiendo <strong>desarrollo web</strong>.</p>\n      <p>Esta es mi primera práctica de <em>HTML5</em> en EduCode Studio.</p>\n    </section>\n\n    <section id="tecnologias">\n      <h2>🔥 Mis Tecnologías Favoritas</h2>\n      <ul>\n        <li>HTML5 &mdash; Estructura y Contenido</li>\n        <li>CSS3 &mdash; Estilos y Diseño</li>\n        <li>JavaScript &mdash; Lógica e Interactividad</li>\n      </ul>\n\n      <h3>Tabla de progreso</h3>\n      <table border="1">\n        <thead>\n          <tr>\n            <th>Tecnología</th>\n            <th>Nivel</th>\n          </tr>\n        </thead>\n        <tbody>\n          <tr>\n            <td>HTML</td>\n            <td>Principiante</td>\n          </tr>\n          <tr>\n            <td>CSS</td>\n            <td>Próximamente</td>\n          </tr>\n          <tr>\n            <td>JavaScript</td>\n            <td>Próximamente</td>\n          </tr>\n        </tbody>\n      </table>\n    </section>\n\n    <section id="contacto">\n      <h2>📬 Contacto</h2>\n      <p>Puedes encontrarme en:</p>\n      <ul>\n        <li><a href="mailto:estudiante@ejemplo.com">estudiante@ejemplo.com</a></li>\n        <li><a href="https://github.com" target="_blank">Mi perfil de GitHub</a></li>\n      </ul>\n    </section>\n  </main>\n\n  <hr>\n\n  <footer>\n    <p>&copy; 2026 &mdash; Creado con ❤️ en la clase de programación</p>\n    <p><small>Este es un ejercicio de HTML puro, sin CSS ni JavaScript.</small></p>\n  </footer>\n\n</body>\n</html>',
@@ -29,12 +37,5 @@ var TEMPLATES = {
     html: '<div class="canvas-container">\n  <h2>⚽ Simulación de Pelotas Rebotando</h2>\n  <canvas id="gameCanvas" width="500" height="350"></canvas>\n  <p>Haz clic en el lienzo para agregar más pelotas.</p>\n</div>',
     css: 'body {\n  margin: 0;\n  background: #0f172a;\n  color: #f8fafc;\n  font-family: system-ui, sans-serif;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  height: 100vh;\n}\n\n.canvas-container {\n  text-align: center;\n}\n\nh2 {\n  margin-bottom: 12px;\n  color: #38bdf8;\n}\n\ncanvas {\n  background: #1e293b;\n  border: 2px solid #38bdf8;\n  border-radius: 12px;\n  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);\n  cursor: pointer;\n}\n\np {\n  color: #94a3b8;\n  font-size: 0.9rem;\n  margin-top: 8px;\n}',
     js: 'const canvas = document.getElementById(\'gameCanvas\');\nconst ctx = canvas.getContext(\'2d\');\n\nconst balls = [];\n\nclass Ball {\n  constructor(x, y) {\n    this.x = x;\n    this.y = y;\n    this.radius = Math.random() * 15 + 10;\n    this.dx = (Math.random() - 0.5) * 6;\n    this.dy = (Math.random() - 0.5) * 6;\n    this.color = "hsl(" + Math.floor(Math.random() * 360) + ", 80%, 60%)";\n  }\n\n  draw() {\n    ctx.beginPath();\n    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);\n    ctx.fillStyle = this.color;\n    ctx.fill();\n    ctx.closePath();\n  }\n\n  update() {\n    if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {\n      this.dx = -this.dx;\n    }\n    if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {\n      this.dy = -this.dy;\n    }\n    this.x += this.dx;\n    this.y += this.dy;\n    this.draw();\n  }\n}\n\nfor (var i = 0; i < 5; i++) {\n  balls.push(new Ball(canvas.width / 2, canvas.height / 2));\n}\n\nfunction animate() {\n  ctx.clearRect(0, 0, canvas.width, canvas.height);\n  balls.forEach(function(ball) { ball.update(); });\n  requestAnimationFrame(animate);\n}\n\nanimate();\n\ncanvas.addEventListener(\'click\', function(e) {\n  var rect = canvas.getBoundingClientRect();\n  var x = e.clientX - rect.left;\n  var y = e.clientY - rect.top;\n  balls.push(new Ball(x, y));\n  console.log("Pelota agregada en (" + Math.round(x) + ", " + Math.round(y) + "). Total pelotas: " + balls.length);\n});'
-  },
-
-  'blank': {
-    name: '🧹 Proyecto en Blanco',
-    html: '<!DOCTYPE html>\n<html lang="es">\n<head>\n  <meta charset="UTF-8">\n  <title>Mi Proyecto</title>\n</head>\n<body>\n  <h1>Hola Mundo</h1>\n</body>\n</html>',
-    css: '/* Escribe tus estilos CSS aquí */\nbody {\n  font-family: sans-serif;\n  padding: 20px;\n}',
-    js: '// Escribe tu código JavaScript aquí\nconsole.log("Listo para programar!");'
   }
 };

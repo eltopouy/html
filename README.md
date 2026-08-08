@@ -1,6 +1,8 @@
 # 🚀 EduCode Studio - Editor Web de Código HTML, CSS y JS
 
-**EduCode Studio** es una plataforma de práctica de código web en vivo orientada a estudiantes e instructores. Permite escribir, probar y ver el resultado de proyectos **HTML5**, **CSS3** y **JavaScript (ES6+)** en tiempo real con una interfaz moderna y profesional similar a OneCompiler, CodePen o VS Code.
+**EduCode Studio** es una plataforma de práctica de código web en vivo desarrollada por **Andrés Franchi Ugartemendía** para estudiantes de **Liceos y UTU**. Permite escribir, probar y ver el resultado de proyectos **HTML5**, **CSS3** y **JavaScript (ES6+)** en tiempo real con una interfaz moderna y profesional similar a OneCompiler, CodePen o VS Code.
+
+> 📚 **Público objetivo:** Estudiantes de educación media de Liceos y UTU que están dando sus primeros pasos en desarrollo web.
 
 ![EduCode Studio Preview](https://img.shields.io/badge/Status-Public-brightgreen) ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat&logo=html5&logoColor=white) ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat&logo=css3&logoColor=white) ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
 
@@ -13,6 +15,7 @@
 - ⚡ **Ejecución en Vivo (Auto-run)**: Actualiza la vista previa automáticamente mientras escribes o permite ejecución manual.
 - 🖥️ **Consola Virtual Interactiva**: Intercepta y muestra llamadas a `console.log()`, `console.warn()`, `console.error()` y fallos de ejecución.
 - 🎯 **Plantillas Educativas**: Incluye ejercicios prácticos listos para ser utilizados en clase (Estructura HTML, Tarjeta con Flexbox, Contador DOM, Animación en Canvas 2D).
+- 📝 **Inicio en Blanco**: Siempre comienza con un documento vacío para que los estudiantes empiecen desde cero.
 - 💾 **Persistencia Automática**: Guarda el trabajo del estudiante en el almacenamiento local (`localStorage`) para no perder progresos al recargar.
 - 📦 **Exportación en ZIP y HTML**: Descarga el código estructurado en archivos `.zip` o como un documento `.html` independiente.
 - 🌐 **100% Estático y Gratuito**: No requiere servidores backend, ideal para alojar sin costo en **GitHub Pages**.
@@ -94,4 +97,6 @@ editor-web/
 
 ## 🤝 Licencia y Créditos
 
-Creado con tecnología abierta (Monaco Editor, Lucide Icons, JSZip). Libre para uso educativo y personal.
+**Desarrollado por [Andrés Franchi Ugartemendía](https://github.com/eltopouy)** para uso educativo en **Liceos y UTU**.
+
+Creado con tecnología abierta (CodeMirror, Lucide Icons, JSZip). Libre para uso educativo y personal.
