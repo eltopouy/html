@@ -32,7 +32,16 @@
   function loadSavedCode() {
     try {
       var data = localStorage.getItem('educode_student_code');
-      return data ? JSON.parse(data) : null;
+      if (!data) return null;
+      var parsed = JSON.parse(data);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          html: typeof parsed.html === 'string' ? parsed.html : '',
+          css: typeof parsed.css === 'string' ? parsed.css : '',
+          js: typeof parsed.js === 'string' ? parsed.js : ''
+        };
+      }
+      return null;
     } catch (e) {
       return null;
     }
@@ -49,8 +58,16 @@
   }
 
   function handleConsoleLog(logData) {
-    consoleLogs.push(logData);
-    if (logData.level === 'error') {
+    if (!logData || typeof logData !== 'object') return;
+
+    var allowedLevels = ['log', 'info', 'warn', 'error'];
+    var level = (typeof logData.level === 'string' && allowedLevels.indexOf(logData.level) !== -1) ? logData.level : 'log';
+    var timestamp = typeof logData.timestamp === 'string' ? escapeHTML(logData.timestamp) : escapeHTML(new Date().toLocaleTimeString());
+    var rawText = typeof logData.text === 'string' ? logData.text : String(logData.text || '');
+    var text = escapeHTML(rawText);
+
+    consoleLogs.push({ level: level, timestamp: timestamp, text: text });
+    if (level === 'error') {
       errorCount++;
       consoleBadgeEl.classList.add('has-error');
     }
@@ -58,11 +75,11 @@
     consoleBadgeEl.textContent = consoleLogs.length + ' mensajes';
 
     var line = document.createElement('div');
-    line.className = 'console-log-line ' + logData.level;
+    line.className = 'console-log-line ' + level;
     line.innerHTML =
-      '<span class="timestamp">' + logData.timestamp + '</span> ' +
-      '<span class="level-badge">' + logData.level.toUpperCase() + '</span> ' +
-      '<span class="message">' + escapeHTML(logData.text) + '</span>';
+      '<span class="timestamp">' + timestamp + '</span> ' +
+      '<span class="level-badge">' + level.toUpperCase() + '</span> ' +
+      '<span class="message">' + text + '</span>';
 
     consoleOutputEl.appendChild(line);
     consoleOutputEl.scrollTop = consoleOutputEl.scrollHeight;
@@ -74,6 +91,8 @@
     var tabTitleEl = document.getElementById('browser-tab-title');
     var urlTextEl = document.getElementById('browser-url-text');
     if (!tabTitleEl) return;
+
+    if (typeof htmlCode !== 'string') htmlCode = '';
 
     // Extract <title>...</title> content from the student's HTML
     var titleMatch = htmlCode.match(/<title[^>]*>([\s\S]*?)<\/title>/i);

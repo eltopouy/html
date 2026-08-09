@@ -13,6 +13,9 @@ var CodeRunner = (function () {
   CodeRunner.prototype._initConsoleBridge = function () {
     var self = this;
     window.addEventListener('message', function (event) {
+      // Security check: Only process messages coming from our own preview iframe contentWindow
+      if (self.iframe && event.source !== self.iframe.contentWindow) return;
+
       if (event.data && event.data.type === 'CONSOLE_LOG') {
         if (self.onConsoleLog) {
           self.onConsoleLog(event.data);
@@ -22,9 +25,13 @@ var CodeRunner = (function () {
   };
 
   CodeRunner.prototype.run = function (code) {
-    var html = code.html;
-    var css = code.css;
-    var js = code.js;
+    var html = (code && code.html) || '';
+    var css = (code && code.css) || '';
+    var js = (code && code.js) || '';
+
+    // Prevent tag breakout (closing </script> or </style> inside user code)
+    var safeCss = css.replace(/<\/style>/gi, '<\\/style>');
+    var safeJs = js.replace(/<\/script>/gi, '<\\/script>');
 
     var consoleInterceptor =
       '<script>' +
@@ -65,13 +72,13 @@ var CodeRunner = (function () {
       '<head>' +
       '<meta charset="UTF-8">' +
       '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
-      '<style>' + css + '</style>' +
+      '<style>' + safeCss + '</style>' +
       consoleInterceptor +
       '</head>' +
       '<body>' +
       html +
       '<script>' +
-      'try {' + js + '} catch (err) { console.error("Error al ejecutar JavaScript: " + err.message); }' +
+      'try {' + safeJs + '} catch (err) { console.error("Error al ejecutar JavaScript: " + err.message); }' +
       '<\/script>' +
       '</body></html>';
 

@@ -7,8 +7,8 @@
   <meta name="author" content="Andrés Franchi Ugartemendía">
   <title>EduCode Studio | Editor de Código HTML, CSS y JS</title>
 
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Lucide Icons (pinned stable version) -->
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
 
   <!-- CodeMirror Core & Themes -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
@@ -191,9 +191,9 @@
           </div>
         </div>
 
-        <!-- Rendered Iframe -->
+        <!-- Rendered Iframe (Sandboxed for security: allow-same-origin removed) -->
         <div class="iframe-container">
-          <iframe id="preview-iframe" title="Result preview" sandbox="allow-scripts allow-modals allow-forms allow-same-origin"></iframe>
+          <iframe id="preview-iframe" title="Result preview" sandbox="allow-scripts allow-modals allow-forms"></iframe>
         </div>
 
         <!-- Interactive Virtual Console Pane -->
