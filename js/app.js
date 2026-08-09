@@ -574,6 +574,10 @@
       onProgress: handleSimulatorProgress
     });
 
+    var initialTarget = (savedCode && (savedCode.html || savedCode.css || savedCode.js)) ? savedCode : TEMPLATES['n1-selector-basic'];
+    var initialTab = (initialTarget.css && !initialTarget.html) ? 'css' : ((initialTarget.js && !initialTarget.html && !initialTarget.css) ? 'js' : 'html');
+    codeSimulator.loadTarget(initialTarget, initialTab);
+
     // 6. Initial run
     codeRunner.run(codeEditor.getCode());
 

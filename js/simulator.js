@@ -157,9 +157,42 @@ var CodeSimulator = (function () {
   };
 
   CodeSimulator.prototype.start = function () {
-    var targetText = this.targetCode[this.activeTab] || '';
+    // 1. Unlock Web Audio API context on user gesture
+    this._initAudio();
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      try { this.audioCtx.resume(); } catch (e) {}
+    }
 
-    // Auto-fallback: If activeTab target is empty, pick the non-empty tab
+    // 2. Ensure targetCode has non-empty target text across html, css, js
+    var hasTargetText = (this.targetCode.html && this.targetCode.html.trim()) ||
+                        (this.targetCode.css && this.targetCode.css.trim()) ||
+                        (this.targetCode.js && this.targetCode.js.trim());
+
+    if (!hasTargetText) {
+      // Try grabbing code currently in the editor
+      var editorCode = this.editor ? this.editor.getCode() : null;
+      var hasEditorCode = editorCode && ((editorCode.html && editorCode.html.trim()) ||
+                                          (editorCode.css && editorCode.css.trim()) ||
+                                          (editorCode.js && editorCode.js.trim()));
+      if (hasEditorCode) {
+        this.targetCode = {
+          html: editorCode.html || '',
+          css: editorCode.css || '',
+          js: editorCode.js || ''
+        };
+      } else {
+        // Fallback to N1: Selector Básico (h1 { color: red; })
+        var fallback = (typeof TEMPLATES !== 'undefined' && TEMPLATES['n1-selector-basic']) ? TEMPLATES['n1-selector-basic'] : { css: 'h1 {\n  color: red;\n}' };
+        this.targetCode = {
+          html: fallback.html || '',
+          css: fallback.css || 'h1 {\n  color: red;\n}',
+          js: fallback.js || ''
+        };
+      }
+    }
+
+    // 3. Ensure activeTab points to the non-empty code tab
+    var targetText = this.targetCode[this.activeTab] || '';
     if (!targetText.trim()) {
       if (this.targetCode.css && this.targetCode.css.trim()) {
         this.activeTab = 'css';
