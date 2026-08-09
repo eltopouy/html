@@ -17,7 +17,7 @@
 ![JavaScript ES6+](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
 ![Web Audio API Synth](https://img.shields.io/badge/Web_Audio_API-Teclado_Mec%C3%A1nico-purple?style=flat-square)
 ![Mobile Responsive](https://img.shields.io/badge/Mobile-Touch_Ready-brightgreen?style=flat-square)
-![Status](https://img.shields.io/badge/Version-v2.5.0_Production-blue?style=flat-square)
+![Status](https://img.shields.io/badge/Version-v3.0.0_Production-blue?style=flat-square)
 
 </div>
 
@@ -63,6 +63,12 @@ Combina la potencia de un editor de código profesional estilo Visual Studio Cod
 - Exporta en un **único archivo `.HTML` ejecutable independiente**.
 - Importa archivos `.html`, `.css` o `.js` locales de hasta 10 MB.
 
+### 🎓 6. Sistema de Ejercicios Didácticos por Niveles (49 ejercicios)
+- **13 Niveles Pedagógicos Progresivos:** Desde selectores CSS básicos hasta modales `<dialog>` interactivos.
+- **Principio de Código Mínimo:** El editor y el simulador muestran únicamente el **código didáctico** del concepto — sin boilerplate, sin ruido pedagógico.
+- **Ensamblado Interno Inteligente:** El runner genera automáticamente el contenedor HTML necesario para ejecutar cualquier fragmento CSS o HTML mínimo, sin que el alumno lo vea.
+- **Cambio Automático de Pestaña:** Al seleccionar un ejercicio, el editor cambia automáticamente a la pestaña correspondiente (CSS, HTML o JS).
+
 ---
 
 ## 📐 Arquitectura Técnica & Seguridad
@@ -79,10 +85,13 @@ html/
 ├── js/
 │   ├── app.js          # Orquestador de UI, eventos, persistencia y puente de consola
 │   ├── editor.js       # Integración con CodeMirror 5 (documentos y atajos)
-│   ├── runner.js       # Ensamblador inteligente de HTML e inyector de sandbox
-│   ├── simulator.js    # Motor de tipeo realista, sintetizador Web Audio API y WPM
-│   ├── templates.js    # Ejercicios y plantillas pedagógicas iniciales
+│   ├── runner.js       # Ensamblador inteligente de HTML + generador de DOM automático para CSS didáctico
+│   ├── simulator.js    # Motor de tipeo realista, sintetizador Web Audio API, WPM y selección de tab
+│   ├── templates.js    # 49 ejercicios pedagógicos en 13 niveles con código mínimo didáctico
 │   └── exporter.js     # Generador de archivos ZIP e HTML standalone
+├── tests/
+│   ├── run-tests.js    # Test runner CLI (Node.js) — 304 tests automatizados
+│   └── educode.test.html  # Interfaz visual de tests en navegador
 ├── package.json        # Configuración del proyecto
 └── README.md           # Documentación y Portada de GitHub
 ```
@@ -92,15 +101,45 @@ html/
 - **Inmunidad a ReDoS:** Expresiones regulares sin *backtracking* catastrófico para la extracción del `<title>`.
 - **Sanitización XSS:** Escapado estricto de HTML entities (`&`, `<`, `>`, `"`, `'`) y whitelist para el nivel de consola.
 - **Escape de Tags:** Neutralización de etiquetas de cierre `</script>` y `</style>` en el código fuente del alumno.
+- **Validación de postMessage:** Solo se procesan mensajes provenientes del `contentWindow` del iframe de previsualización.
+
+---
+
+## 🧪 Sistema de Testing Automatizado
+
+```bash
+node tests/run-tests.js
+```
+
+**304 tests automatizados** organizados en 5 suites que se ejecutan en segundos con Node.js (sin dependencias externas):
+
+| Suite | Tests | Cobertura |
+|---|---|---|
+| 📚 Templates | ~210 | Principio pedagógico, 13 niveles, ausencia de boilerplate |
+| ⚙️ Runner | 16 | Ensamblado HTML, DOM automático para CSS, seguridad XSS |
+| 🎹 Simulator | 16 | Selección de tab didáctico, reset, pause, defaults |
+| 📦 Exporter | 5 | Funciones disponibles, rechazo de archivos >10MB |
+| 🐛 Regresión | 6 | 6 bugs históricos no reaparecen |
+
+Ejecutar antes de cada commit para garantizar que los cambios no rompen comportamiento existente.
 
 ---
 
 ## 📝 Historial de Cambios (Changelog)
 
+### **v3.0.0** — *Sistema Pedagógico por Niveles + Testing Automatizado* (2026-08-09)
+- 🎓 **Reestructuración Pedagógica Completa:** 49 ejercicios organizados en **13 niveles progresivos** con código mínimo didáctico. El editor y el simulador muestran únicamente el concepto a enseñar — sin boilerplate.
+- 🔄 **Ensamblado Inteligente de DOM:** El runner genera automáticamente el elemento HTML necesario para visualizar cualquier regla CSS (`h1`, `p`, `h2`, `.center`, `#para`, `.car`) sin que aparezca en el editor del alumno.
+- ⚡ **Selección Automática de Pestaña:** Al seleccionar un ejercicio, el editor y el simulador cambian automáticamente a la pestaña del código didáctico (CSS, HTML o JS).
+- 🎹 **Simulador Corregido:** Resuelto el bug crítico por el que el simulador no tipeaba nada en ejercicios de CSS puro (leía la pestaña HTML vacía). Ahora detecta automáticamente el tab con contenido.
+- 🔊 **Desbloqueo de AudioContext:** El contexto de Web Audio API se desbloquea en el gesto de clic del usuario, resolviendo el bloqueo de audio en Chrome, Safari y Edge.
+- 🧪 **Sistema de Testing (304 tests):** Test runner CLI con Node.js (`tests/run-tests.js`) e interfaz visual HTML (`tests/educode.test.html`). Cubre templates, runner, simulator, exporter y regresiones.
+
 ### **v2.5.0** — *Mejoras de Posicionamiento SEO/AI & Auditoría de Ejecución* (2026-08-09)
 - 🤖 **GEO & AI Indexing:** Creación de `llms.txt`, `robots.txt` habilitado para rastreadores de IA (GPTBot, ClaudeBot, PerplexityBot) y `sitemap.xml`.
 - 🏷️ **Metadatos Avanzados:** Inclusión de OpenGraph, Twitter Cards y datos estructurados Schema.org (`WebApplication`, `EducationalApplication`).
-- 🐛 **Corrección de Bugs:** Corrección del error de puntero nulo en botones dinámicos Lucide, eliminación de condiciones de carrera en el temporizador del simulador y auto-scroll en CodeMirror.
+- 🐛 **Corrección de Bugs:** Error de puntero nulo en botones Lucide, condiciones de carrera en simulador y auto-scroll en CodeMirror.
+- 📸 **Plantillas Educativas Extendidas:** Agregados todos los ejemplos de pantallas de referencia: `<marquee>`, `<meter>`, `<pre>`, `<dialog>`, `<dl>`, formularios, `<fieldset>`, multimedia y animaciones Canvas.
 
 ### **v2.4.0** — *Motor de Tipeo Ultra-Realista & Sintetizador de Teclado Mecánico* (2026-08-09)
 - ⌨️ **Simulador QWERTY Español:** Mapa de teclas físicamente contiguas para generar equivocaciones realistas (incluyendo deslizamiento hacia la tecla `ñ`).
@@ -117,7 +156,7 @@ html/
 - 🌐 **Dominio Personalizado:** Configuración del dominio `https://html.servicioti.com.uy`.
 
 ### **v1.0.0** — *Lanzamiento Inicial* (2026-08-08)
-- 🚀 Versión inicial con editor multi-pestana, vista previa en iframe y consola virtual integrada.
+- 🚀 Versión inicial con editor multi-pestaña, vista previa en iframe y consola virtual integrada.
 
 ---
 
