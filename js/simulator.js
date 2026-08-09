@@ -1,11 +1,58 @@
 /**
- * EduCode Studio - Learning Engine & Typing Simulator Module
- * Simula la escritura de código en tiempo real con audio sintético de teclado mecánico,
- * pausas humanas inteligentes, detección de errores (typos) y métricas de aprendizaje.
+ * EduCode Studio - Hyper-Realistic Typing Simulator & Learning Engine
+ * Simula la escritura de código en tiempo real imitando los patrones, ráfagas,
+ * pausas de duda y errores tipográficos reales de programadores (teclado QWERTY español).
  * Desarrollado por Andrés Franchi Ugartemendía para estudiantes de Liceos y UTU.
  */
 
 var CodeSimulator = (function () {
+
+  // Mapa de teclas físicamente adyacentes en distribución QWERTY español/Latinoamérica
+  var KEYBOARD_NEIGHBORS = {
+    'a': ['s', 'q', 'z', 'w'],
+    'b': ['v', 'n', 'g', 'h'],
+    'c': ['x', 'v', 'd', 'f'],
+    'd': ['s', 'f', 'e', 'r', 'c'],
+    'e': ['w', 'r', 'd', '3', '4'],
+    'f': ['d', 'g', 'r', 't', 'v'],
+    'g': ['f', 'h', 't', 'y', 'b'],
+    'h': ['g', 'j', 'y', 'u', 'n'],
+    'i': ['u', 'o', 'k', '8', '9'],
+    'j': ['h', 'k', 'u', 'i', 'm'],
+    'k': ['j', 'l', 'i', 'o'],
+    'l': ['k', 'ñ', 'o', 'p'],
+    'm': ['n', 'k', 'j', ','],
+    'n': ['b', 'm', 'h', 'j'],
+    'ñ': ['l', 'p', ';', '\''],
+    'o': ['i', 'p', 'k', 'l', '9', '0'],
+    'p': ['o', 'l', 'ñ', '0'],
+    'q': ['w', 'a', '1', '2'],
+    'r': ['e', 't', 'f', 'd', '4', '5'],
+    's': ['a', 'd', 'w', 'e', 'z', 'x'],
+    't': ['r', 'y', 'g', 'f', '5', '6'],
+    'u': ['y', 'i', 'h', 'j', '7', '8'],
+    'v': ['c', 'b', 'f', 'g'],
+    'w': ['q', 'e', 's', 'a', '2', '3'],
+    'x': ['z', 'c', 's', 'd'],
+    'y': ['t', 'u', 'g', 'h', '6', '7'],
+    'z': ['a', 's', 'x'],
+    '<': ['>', 'z', 'a'],
+    '>': ['<', '.', ','],
+    ';': [':', 'l', 'ñ'],
+    ':': [';', 'p', 'l'],
+    '.': [',', ';', ':'],
+    ',': ['.', 'm', 'n'],
+    '"': ['\'', ';', ':'],
+    '\'': ['"', 'ñ', 'l']
+  };
+
+  // Palabras clave que los programadores escriben en ráfaga rápida (memoria muscular)
+  var BURST_WORDS = [
+    'function', 'document', 'getElementById', 'addEventListener', 'console.log',
+    'return', 'const', 'var', 'let', 'class', 'style', 'header', 'footer',
+    'section', 'button', 'script', 'doctype', 'html', 'head', 'body', 'flex',
+    'display', 'background', 'margin', 'padding', 'width', 'height', 'border'
+  ];
 
   function CodeSimulator(editorInstance, runnerInstance, callbacks) {
     this.editor = editorInstance;
@@ -20,14 +67,14 @@ var CodeSimulator = (function () {
     this.isTyping = false;
     this.timerId = null;
 
-    // Configuration Settings
-    this.baseDelay = 35;          // ms por carácter
-    this.typoProbability = 0.03;   // 3% probabilidad de error
+    // Ajustes de Simulación
+    this.baseDelay = 32;          // ms por carácter promedio
+    this.typoProbability = 0.035;  // 3.5% probabilidad de error
     this.enableSound = true;
     this.enableHumanize = true;
     this.soundProfile = 'cherry';  // 'cherry' o 'brown'
 
-    // Metrics
+    // Métricas
     this.startTime = null;
     this.charactersTyped = 0;
 
@@ -142,6 +189,38 @@ var CodeSimulator = (function () {
     }
   };
 
+  // ---- Helper: Generador Realista de Errores Tipográficos ----
+
+  CodeSimulator.prototype._getRealisticTypoChar = function (expectedChar) {
+    var lower = expectedChar.toLowerCase();
+    var neighbors = KEYBOARD_NEIGHBORS[lower];
+
+    if (neighbors && neighbors.length > 0) {
+      var wrong = neighbors[Math.floor(Math.random() * neighbors.length)];
+      return (expectedChar === expectedChar.toUpperCase() && expectedChar !== lower) ? wrong.toUpperCase() : wrong;
+    }
+
+    // Típico error en teclado español: presionar 'ñ' al buscar ';' o ':'
+    if (expectedChar === ';' || expectedChar === ':') {
+      return Math.random() < 0.5 ? 'ñ' : (expectedChar === ';' ? ':' : ';');
+    }
+
+    var fallbackChars = "abcdefghijklmnopqrstuvwxyz;";
+    return fallbackChars.charAt(Math.floor(Math.random() * fallbackChars.length));
+  };
+
+  // ---- Helper: Detección de Ráfagas (Burst Words) ----
+
+  CodeSimulator.prototype._isInBurstWord = function (targetText, index) {
+    var textAhead = targetText.slice(index, index + 15).toLowerCase();
+    for (var i = 0; i < BURST_WORDS.length; i++) {
+      if (textAhead.indexOf(BURST_WORDS[i].toLowerCase()) === 0) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   // ---- Step Engine ----
 
   CodeSimulator.prototype._step = function () {
@@ -156,19 +235,20 @@ var CodeSimulator = (function () {
     }
 
     var self = this;
+    var expectedChar = targetText.charAt(this.targetIndex);
 
-    // Check for simulated typo
+    // Determinar si ocurre un error realista
     var shouldTypo = Math.random() < this.typoProbability &&
                      this.targetIndex > 5 &&
-                     this.targetIndex < targetText.length - 5;
+                     this.targetIndex < targetText.length - 5 &&
+                     expectedChar !== '\n' && expectedChar !== '\r' && expectedChar !== ' ';
 
     if (shouldTypo) {
-      this._handleTypo(function () {
-        self._scheduleNext();
+      this._handleRealisticTypoSequence(expectedChar, function () {
+        self._scheduleNext(expectedChar);
       });
     } else {
-      var char = targetText.charAt(this.targetIndex);
-      this.currentCode[this.activeTab] += char;
+      this.currentCode[this.activeTab] += expectedChar;
       this.targetIndex++;
       this.charactersTyped++;
 
@@ -179,45 +259,88 @@ var CodeSimulator = (function () {
       }
 
       this._notifyUpdate();
-      this._scheduleNext(char);
+      this._scheduleNext(expectedChar);
     }
   };
 
-  CodeSimulator.prototype._handleTypo = function (onDone) {
+  // ---- Manejador Realista de Errores y Borrado ----
+
+  CodeSimulator.prototype._handleRealisticTypoSequence = function (expectedChar, onDone) {
     var self = this;
-    var wrongChars = "abcdefghijklmnopqrstuvwxyz;:/><=";
-    var randomWrong = wrongChars.charAt(Math.floor(Math.random() * wrongChars.length));
+    // 30% de probabilidad de escribir 2 a 3 letras equivocadas antes de notar el error
+    var multiCharCount = Math.random() < 0.3 ? (Math.floor(Math.random() * 2) + 2) : 1;
+    var wrongString = '';
 
-    // Type wrong character
-    this.currentCode[this.activeTab] += randomWrong;
-    if (this.editor) this.editor.setCode(this.currentCode);
-    this.playKeySound();
+    for (var k = 0; k < multiCharCount; k++) {
+      var nextChar = this.targetCode[this.activeTab].charAt(this.targetIndex + k) || expectedChar;
+      wrongString += this._getRealisticTypoChar(nextChar);
+    }
 
-    // Pause, then Backspace
-    this.timerId = setTimeout(function () {
-      self.currentCode[self.activeTab] = self.currentCode[self.activeTab].slice(0, -1);
-      if (self.editor) self.editor.setCode(self.currentCode);
-      self.playKeySound();
+    var charsInserted = 0;
 
-      self.timerId = setTimeout(onDone, self.baseDelay + 120);
-    }, 160);
+    function typeWrongChars() {
+      if (charsInserted < wrongString.length) {
+        self.currentCode[self.activeTab] += wrongString.charAt(charsInserted);
+        if (self.editor) self.editor.setCode(self.currentCode);
+        self.playKeySound();
+        charsInserted++;
+        self.timerId = setTimeout(typeWrongChars, self.baseDelay + (Math.random() * 20 - 10));
+      } else {
+        // Pausa de sorpresa (duda al notar el error)
+        self.timerId = setTimeout(backspaceWrongChars, 180 + Math.random() * 100);
+      }
+    }
+
+    function backspaceWrongChars() {
+      if (charsInserted > 0) {
+        self.currentCode[self.activeTab] = self.currentCode[self.activeTab].slice(0, -1);
+        if (self.editor) self.editor.setCode(self.currentCode);
+        self.playKeySound();
+        charsInserted--;
+        self.timerId = setTimeout(backspaceWrongChars, 35 + Math.random() * 15);
+      } else {
+        // Breve pausa post-corrección antes de continuar
+        self.timerId = setTimeout(onDone, self.baseDelay + 80);
+      }
+    }
+
+    typeWrongChars();
   };
+
+  // ---- Programador Ritmo e Intentional Hesitation ----
 
   CodeSimulator.prototype._scheduleNext = function (lastChar) {
     var self = this;
-    var delay = this.baseDelay + (Math.random() * 20 - 10);
+    var targetText = this.targetCode[this.activeTab] || '';
+    var isBurst = this._isInBurstWord(targetText, this.targetIndex);
+
+    // Si está escribiendo una palabra en memoria muscular (ráfaga), acelera el tipeo
+    var delay = isBurst ? (14 + Math.random() * 10) : (this.baseDelay + (Math.random() * 24 - 12));
 
     if (this.enableHumanize && lastChar) {
-      if (lastChar === '\n') delay += 160;
-      else if (lastChar === '>') delay += 90;
-      else if (lastChar === ';') delay += 80;
-      else if (lastChar === '{' || lastChar === '}') delay += 110;
-      else if (lastChar === ' ') delay += 15;
+      if (lastChar === '\n') {
+        // Pausa en saltos de línea (pensando la siguiente línea)
+        delay += 180 + Math.random() * 140;
+      } else if (lastChar === '>') {
+        // Pausa al cerrar etiqueta HTML
+        delay += 100 + Math.random() * 60;
+      } else if (lastChar === '<') {
+        // Duda leve antes de abrir etiqueta HTML
+        delay += 80 + Math.random() * 50;
+      } else if (lastChar === ';') {
+        // Pausa al terminar una instrucción JS / regla CSS
+        delay += 90 + Math.random() * 50;
+      } else if (lastChar === '{' || lastChar === '}') {
+        // Pausa en bloques de código
+        delay += 140 + Math.random() * 80;
+      } else if (lastChar === ' ') {
+        delay += 15 + Math.random() * 15;
+      }
     }
 
     this.timerId = setTimeout(function () {
       self._step();
-    }, Math.max(8, delay));
+    }, Math.max(6, Math.round(delay)));
   };
 
   CodeSimulator.prototype._notifyUpdate = function () {
