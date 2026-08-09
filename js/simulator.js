@@ -171,7 +171,7 @@ var CodeSimulator = (function () {
 
   CodeSimulator.prototype.reset = function () {
     this.stop();
-    this.currentCode[this.activeTab] = '';
+    this.currentCode = { html: '', css: '', js: '' };
     this.targetIndex = 0;
     this.startTime = null;
     this.charactersTyped = 0;
@@ -255,7 +255,7 @@ var CodeSimulator = (function () {
       this.playKeySound();
 
       if (this.editor) {
-        this.editor.setCode(this.currentCode);
+        this.editor.setCode(this.currentCode, true);
       }
 
       this._notifyUpdate();
@@ -267,6 +267,8 @@ var CodeSimulator = (function () {
 
   CodeSimulator.prototype._handleRealisticTypoSequence = function (expectedChar, onDone) {
     var self = this;
+    if (!this.isTyping) return;
+
     // 30% de probabilidad de escribir 2 a 3 letras equivocadas antes de notar el error
     var multiCharCount = Math.random() < 0.3 ? (Math.floor(Math.random() * 2) + 2) : 1;
     var wrongString = '';
@@ -279,9 +281,10 @@ var CodeSimulator = (function () {
     var charsInserted = 0;
 
     function typeWrongChars() {
+      if (!self.isTyping) return;
       if (charsInserted < wrongString.length) {
         self.currentCode[self.activeTab] += wrongString.charAt(charsInserted);
-        if (self.editor) self.editor.setCode(self.currentCode);
+        if (self.editor) self.editor.setCode(self.currentCode, true);
         self.playKeySound();
         charsInserted++;
         self.timerId = setTimeout(typeWrongChars, self.baseDelay + (Math.random() * 20 - 10));
@@ -292,15 +295,18 @@ var CodeSimulator = (function () {
     }
 
     function backspaceWrongChars() {
+      if (!self.isTyping) return;
       if (charsInserted > 0) {
         self.currentCode[self.activeTab] = self.currentCode[self.activeTab].slice(0, -1);
-        if (self.editor) self.editor.setCode(self.currentCode);
+        if (self.editor) self.editor.setCode(self.currentCode, true);
         self.playKeySound();
         charsInserted--;
         self.timerId = setTimeout(backspaceWrongChars, 35 + Math.random() * 15);
       } else {
         // Breve pausa post-corrección antes de continuar
-        self.timerId = setTimeout(onDone, self.baseDelay + 80);
+        if (self.isTyping) {
+          self.timerId = setTimeout(onDone, self.baseDelay + 80);
+        }
       }
     }
 

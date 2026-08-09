@@ -94,11 +94,19 @@ var CodeEditor = (function () {
     };
   };
 
-  CodeEditor.prototype.setCode = function (codeObj) {
-    if (!this.isReady) return;
+  CodeEditor.prototype.setCode = function (codeObj, moveCursorToEnd) {
+    if (!this.isReady || !codeObj) return;
     if (codeObj.html !== undefined && this.docs.html) this.docs.html.setValue(codeObj.html);
     if (codeObj.css !== undefined && this.docs.css) this.docs.css.setValue(codeObj.css);
     if (codeObj.js !== undefined && this.docs.js) this.docs.js.setValue(codeObj.js);
+
+    if (moveCursorToEnd && this.editor) {
+      var currentDoc = this.editor.getDoc();
+      var lastLine = currentDoc.lastLine();
+      var lastCh = currentDoc.getLine(lastLine) ? currentDoc.getLine(lastLine).length : 0;
+      currentDoc.setCursor({ line: lastLine, ch: lastCh });
+    }
+
     this.editor.refresh();
   };
 

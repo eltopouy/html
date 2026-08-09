@@ -91,6 +91,20 @@
     consoleOutputEl.scrollTop = consoleOutputEl.scrollHeight;
   }
 
+  // ---- Lucide Icon Element Helper ----
+
+  function updateButtonIcon(buttonEl, iconName, styleColor) {
+    if (!buttonEl) return;
+    var existingIcon = buttonEl.querySelector('svg, i');
+    if (existingIcon) {
+      var newI = document.createElement('i');
+      newI.setAttribute('data-lucide', iconName);
+      if (styleColor) newI.style.color = styleColor;
+      existingIcon.parentNode.replaceChild(newI, existingIcon);
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
+
   // ---- Simulator Progress Handler ----
 
   function handleSimulatorProgress(data) {
@@ -104,20 +118,18 @@
     if (progressBar) progressBar.style.width = data.progress + '%';
 
     if (btnPlay) {
-      var icon = btnPlay.querySelector('i');
       var label = btnPlay.querySelector('span');
       if (data.isTyping) {
-        if (icon) icon.setAttribute('data-lucide', 'pause');
+        updateButtonIcon(btnPlay, 'pause');
         if (label) label.textContent = 'Pausar';
         btnPlay.classList.add('btn-amber');
         btnPlay.classList.remove('btn-emerald');
       } else {
-        if (icon) icon.setAttribute('data-lucide', 'play');
+        updateButtonIcon(btnPlay, 'play');
         if (label) label.textContent = (data.progress > 0 && data.progress < 100) ? 'Continuar' : 'Iniciar Tipeo';
         btnPlay.classList.add('btn-emerald');
         btnPlay.classList.remove('btn-amber');
       }
-      if (window.lucide) window.lucide.createIcons();
     }
   }
 
@@ -154,7 +166,10 @@
     if (autoRun) {
       clearTimeout(autoRunTimeout);
       autoRunTimeout = setTimeout(function () {
-        clearConsole();
+        // Do not wipe console output if simulator is actively running
+        if (!codeSimulator || !codeSimulator.isTyping) {
+          clearConsole();
+        }
         codeRunner.run(code);
       }, 500);
     }
@@ -421,7 +436,7 @@
         var isVisible = !simToolbar.classList.contains('hidden');
         if (isVisible && codeSimulator) {
           var templateKey = document.getElementById('template-select').value;
-          var template = TEMPLATES[templateKey] || TEMPLATES['html-basic'];
+          var template = (TEMPLATES[templateKey] && TEMPLATES[templateKey].html) ? TEMPLATES[templateKey] : TEMPLATES['html-basic'];
           codeSimulator.loadTarget(template, codeEditor.currentTab || 'html');
         } else if (!isVisible && codeSimulator) {
           codeSimulator.pause();
@@ -461,13 +476,8 @@
         if (!codeSimulator) return;
         codeSimulator.enableSound = !codeSimulator.enableSound;
         var label = this.querySelector('span');
-        var icon = this.querySelector('i');
         if (label) label.textContent = codeSimulator.enableSound ? 'Sonido ON' : 'Sonido OFF';
-        if (icon) {
-          icon.setAttribute('data-lucide', codeSimulator.enableSound ? 'volume-2' : 'volume-x');
-          icon.style.color = codeSimulator.enableSound ? 'var(--accent-primary)' : 'var(--text-muted)';
-        }
-        if (window.lucide) window.lucide.createIcons();
+        updateButtonIcon(this, codeSimulator.enableSound ? 'volume-2' : 'volume-x', codeSimulator.enableSound ? 'var(--accent-primary)' : 'var(--text-muted)');
       });
     }
 
