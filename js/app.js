@@ -460,7 +460,7 @@
         var isVisible = !simToolbar.classList.contains('hidden');
         if (isVisible && codeSimulator) {
           var templateKey = document.getElementById('template-select').value;
-          var template = (TEMPLATES[templateKey] && TEMPLATES[templateKey].html) ? TEMPLATES[templateKey] : TEMPLATES['html-basic'];
+          var template = TEMPLATES[templateKey] || TEMPLATES['n1-selector-basic'];
           codeSimulator.loadTarget(template, codeEditor.currentTab || 'html');
         } else if (!isVisible && codeSimulator) {
           codeSimulator.pause();

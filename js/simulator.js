@@ -126,13 +126,24 @@ var CodeSimulator = (function () {
 
   CodeSimulator.prototype.loadTarget = function (codeObj, tab) {
     this.stop();
-    tab = tab || 'html';
-    this.activeTab = tab;
     this.targetCode = {
       html: (codeObj && codeObj.html) || '',
       css: (codeObj && codeObj.css) || '',
       js: (codeObj && codeObj.js) || ''
     };
+
+    tab = tab || 'html';
+    if (!this.targetCode[tab] || !this.targetCode[tab].trim()) {
+      if (this.targetCode.css && this.targetCode.css.trim()) {
+        tab = 'css';
+      } else if (this.targetCode.html && this.targetCode.html.trim()) {
+        tab = 'html';
+      } else if (this.targetCode.js && this.targetCode.js.trim()) {
+        tab = 'js';
+      }
+    }
+    this.activeTab = tab;
+
     this.currentCode = { html: '', css: '', js: '' };
     this.targetIndex = 0;
     this.startTime = null;
@@ -147,9 +158,25 @@ var CodeSimulator = (function () {
 
   CodeSimulator.prototype.start = function () {
     var targetText = this.targetCode[this.activeTab] || '';
+
+    // Auto-fallback: If activeTab target is empty, pick the non-empty tab
+    if (!targetText.trim()) {
+      if (this.targetCode.css && this.targetCode.css.trim()) {
+        this.activeTab = 'css';
+      } else if (this.targetCode.html && this.targetCode.html.trim()) {
+        this.activeTab = 'html';
+      } else if (this.targetCode.js && this.targetCode.js.trim()) {
+        this.activeTab = 'js';
+      }
+      targetText = this.targetCode[this.activeTab] || '';
+      if (this.editor) this.editor.switchTab(this.activeTab);
+    }
+
     if (this.targetIndex >= targetText.length) {
       this.reset();
+      targetText = this.targetCode[this.activeTab] || '';
     }
+
     this.isTyping = true;
     if (!this.startTime) this.startTime = Date.now();
     this._step();

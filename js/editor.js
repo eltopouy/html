@@ -79,6 +79,17 @@ var CodeEditor = (function () {
     this.currentTab = tabName;
     this.editor.swapDoc(this.docs[tabName]);
     this.editor.setOption('mode', this.modes[tabName]);
+
+    // Sync tab button UI elements
+    var tabBtns = document.querySelectorAll('.tab-btn');
+    for (var k = 0; k < tabBtns.length; k++) {
+      if (tabBtns[k].dataset.tab === tabName) {
+        tabBtns[k].classList.add('active');
+      } else {
+        tabBtns[k].classList.remove('active');
+      }
+    }
+
     var self = this;
     setTimeout(function () {
       self.editor.refresh();
