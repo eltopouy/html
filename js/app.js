@@ -305,11 +305,35 @@
     // Template change
     document.getElementById('template-select').addEventListener('change', function () {
       var templateKey = this.value;
-      if (TEMPLATES[templateKey]) {
-        codeEditor.setCode(TEMPLATES[templateKey]);
-        updateBrowserTab(TEMPLATES[templateKey].html);
+      var template = TEMPLATES[templateKey];
+      if (template) {
+        // Determine primary didactic tab (css vs html vs js)
+        var targetTab = 'html';
+        if (template.css && !template.html) {
+          targetTab = 'css';
+        } else if (template.js && !template.html && !template.css) {
+          targetTab = 'js';
+        }
+
+        // Switch editor tab visually
+        var tabBtns = document.querySelectorAll('.tab-btn');
+        for (var k = 0; k < tabBtns.length; k++) {
+          if (tabBtns[k].dataset.tab === targetTab) {
+            tabBtns[k].classList.add('active');
+          } else {
+            tabBtns[k].classList.remove('active');
+          }
+        }
+        codeEditor.switchTab(targetTab);
+
+        codeEditor.setCode(template);
+        updateBrowserTab(template.html);
         clearConsole();
-        codeRunner.run(TEMPLATES[templateKey]);
+        codeRunner.run(template);
+
+        if (codeSimulator) {
+          codeSimulator.loadTarget(template, targetTab);
+        }
       }
     });
 

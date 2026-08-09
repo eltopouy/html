@@ -109,17 +109,40 @@ var CodeRunner = (function () {
         fullSource = fullSource + scriptBlock;
       }
     } else {
+      var bodyContent = html.trim();
+
+      // If HTML is empty, generate an appropriate minimal target element based on CSS selectors for instant visual feedback
+      if (!bodyContent && safeCss.trim()) {
+        if (/^\s*\.center/i.test(safeCss) || /class=["']center["']/i.test(safeCss)) {
+          bodyContent = '<h1 class="center">Heading</h1>';
+        } else if (/^\s*#para/i.test(safeCss) || /id=["']para["']/i.test(safeCss)) {
+          bodyContent = '<p id="para">First Paragraph.</p>';
+        } else if (/^\s*\.car/i.test(safeCss)) {
+          bodyContent = '<div class="car">Auto de Ejemplo</div>';
+        } else if (/^\s*p\b/i.test(safeCss)) {
+          bodyContent = '<p>Este es un párrafo de prueba.</p>';
+        } else if (/^\s*h2\b/i.test(safeCss)) {
+          bodyContent = '<h2>Encabezado Nivel 2</h2>';
+        } else if (/^\s*(h1|h2|p)\b/i.test(safeCss)) {
+          bodyContent = '<h1>Primer Encabezado</h1>\n<h2>Segundo Encabezado</h2>\n<p>Párrafo de ejemplo.</p>';
+        } else {
+          bodyContent = '<h1>Encabezado de Prueba</h1>\n<p>Texto de prueba para visualizar el estilo.</p>';
+        }
+      }
+
+      var baseStyle = '<style>body { font-family: system-ui, -apple-system, sans-serif; padding: 24px; color: #1e293b; line-height: 1.5; } ' + safeCss + '</style>';
+
       fullSource =
         '<!DOCTYPE html>' +
         '<html lang="es">' +
         '<head>' +
         '<meta charset="UTF-8">' +
         '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
-        styleBlock +
+        baseStyle +
         consoleInterceptor +
         '</head>' +
         '<body>' +
-        html +
+        bodyContent +
         scriptBlock +
         '</body></html>';
     }
