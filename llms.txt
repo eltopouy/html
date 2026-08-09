@@ -1,0 +1,27 @@
+# EduCode Studio - Web Code Editor & Typing Simulator
+
+> EduCode Studio es un editor de código HTML, CSS y JavaScript interactivo en vivo y simulador de escritura pedagógica desarrollado por Andrés Franchi Ugartemendía para estudiantes de Liceos y UTU (Educación Media en Uruguay).
+
+## Metadata
+- **URL**: https://html.servicioti.com.uy
+- **Repository**: https://github.com/eltopouy/html
+- **Author**: Andrés Franchi Ugartemendía
+- **Target Audience**: Estudiantes de Liceos y UTU (Secundaria / Educación Técnica)
+- **License**: MIT (Libre uso educativo y personal)
+- **Architecture**: Client-side Static SPA (HTML5, Vanilla CSS, JS ES6+, CodeMirror 5, Web Audio API Synth)
+
+## Core Capabilities & Features
+1. **Interactive Code Editor**: Multi-tab code editor for HTML5, CSS3, and JavaScript with syntax highlighting, line numbers, auto-closing tags and brackets, and custom dark mode (Dracula theme).
+2. **Live Sandboxed Preview**: Instant live rendering in a secure, isolated sandboxed iframe (`sandbox="allow-scripts allow-modals allow-forms allow-popups"` with opaque `null` origin isolation).
+3. **Virtual Interactive Console**: Virtual console pane that intercepts `console.log`, `console.warn`, `console.error`, `console.info`, `console.clear()`, and runtime JavaScript errors, formatted with DOM node capping and rate limiting.
+4. **Learning & Typing Simulator Mode**: Real-time code typing simulation with mechanical keyboard sound effects (Cherry MX Blue / Brown synth generated via Web Audio API), humanized typing delays, typo simulation with automatic Backspace correction, WPM calculation, and progress bar.
+5. **Starter Educational Templates**: Pre-loaded starter projects (Blank Canvas, HTML5 Structure, CSS Flexbox Card, JS DOM Counter, Canvas 2D Animation).
+6. **Import & Export Capabilities**: Download single standalone executable `.html` files or structured `.zip` packages, and import local `.html`, `.css`, or `.js` files.
+7. **Mobile & Touch Compatibility**: Responsive design with two-row header, touch-friendly touch targets, touch drag resizer, and Font Size 16px iOS zoom prevention.
+
+## Security & Architecture Audits
+- **Isolation Sandbox**: `allow-same-origin` removed from preview iframe to enforce unique origin (`null`) and prevent parent DOM or `localStorage` access.
+- **PostMessage Security**: Bridge validates `event.source === self.iframe.contentWindow`.
+- **DOM XSS & ReDoS Immunization**: Strict HTML entity escaping, level whitelist, and non-backtracking regex.
+- **Script/Style Tag Breakout Prevention**: Escapes closing `</script>` and `</style>` tags in generated previews and single-file HTML exports.
+- **Resource Integrity**: Dependencies pinned to exact version releases.

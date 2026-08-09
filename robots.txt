@@ -1,0 +1,32 @@
+# Robots.txt for EduCode Studio
+# Domain: https://html.servicioti.com.uy
+# Developed by Andrés Franchi Ugartemendía for Liceos y UTU
+
+User-agent: *
+Allow: /
+
+# Allow AI Search & Web Crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Sitemap & LLM Context File Locations
+Sitemap: https://html.servicioti.com.uy/sitemap.xml
+LLMs-txt: https://html.servicioti.com.uy/llms.txt
