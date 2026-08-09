@@ -45,7 +45,17 @@ var CodeEditor = (function () {
       indentWithTabs: false,
       lineWrapping: true,
       cursorHeight: 0.95,
-      inputStyle: 'textarea'
+      inputStyle: 'textarea',
+      extraKeys: {
+        'Ctrl-Enter': function () {
+          var btnRun = document.getElementById('btn-run');
+          if (btnRun) btnRun.click();
+        },
+        'Cmd-Enter': function () {
+          var btnRun = document.getElementById('btn-run');
+          if (btnRun) btnRun.click();
+        }
+      }
     });
 
     this.isReady = true;

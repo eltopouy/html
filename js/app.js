@@ -81,6 +81,11 @@
       '<span class="level-badge">' + level.toUpperCase() + '</span> ' +
       '<span class="message">' + text + '</span>';
 
+    // Cap DOM nodes to max 200 to prevent browser lag during heavy logging
+    if (consoleOutputEl.children.length >= 200) {
+      consoleOutputEl.removeChild(consoleOutputEl.firstChild);
+    }
+
     consoleOutputEl.appendChild(line);
     consoleOutputEl.scrollTop = consoleOutputEl.scrollHeight;
   }
@@ -323,6 +328,7 @@
     // Import file
     var fileInput = document.getElementById('import-file-input');
     document.getElementById('btn-import').addEventListener('click', function () {
+      fileInput.value = '';
       fileInput.click();
     });
     fileInput.addEventListener('change', function () {
@@ -345,10 +351,31 @@
       }
     });
 
-    // Fullscreen Preview
+    // Fullscreen Preview (Cross-browser vendor support)
     document.getElementById('btn-fullscreen').addEventListener('click', function () {
-      if (previewIframe.requestFullscreen) {
-        previewIframe.requestFullscreen();
+      var requestFS = previewIframe.requestFullscreen ||
+                      previewIframe.webkitRequestFullscreen ||
+                      previewIframe.mozRequestFullScreen ||
+                      previewIframe.msRequestFullscreen;
+      if (requestFS) {
+        requestFS.call(previewIframe);
+      }
+    });
+
+    // Window Resize / Orientation Change Handler
+    var resizeDebounce = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeDebounce);
+      resizeDebounce = setTimeout(function () {
+        if (codeEditor) codeEditor.resize();
+      }, 150);
+    });
+
+    // Global Keyboard Shortcuts (Ctrl+Enter / Cmd+Enter)
+    document.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('btn-run').click();
       }
     });
   }

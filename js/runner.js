@@ -44,7 +44,16 @@ var CodeRunner = (function () {
       '    }' +
       '    return String(arg);' +
       '  };' +
+      '  var logCount = 0;' +
+      '  var MAX_LOGS = 500;' +
       '  var sendLog = function(level, args) {' +
+      '    logCount++;' +
+      '    if (logCount > MAX_LOGS) {' +
+      '      if (logCount === MAX_LOGS + 1) {' +
+      '        window.parent.postMessage({ type: "CONSOLE_LOG", level: "warn", text: "[Consola pausada: superado el límite de 500 mensajes]", timestamp: new Date().toLocaleTimeString() }, "*");' +
+      '      }' +
+      '      return;' +
+      '    }' +
       '    var text = Array.prototype.slice.call(args).map(formatArg).join(" ");' +
       '    window.parent.postMessage({' +
       '      type: "CONSOLE_LOG",' +
