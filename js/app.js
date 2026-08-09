@@ -85,6 +85,7 @@
     tabTitleEl.textContent = pageTitle;
 
     // Update the simulated URL bar
+    if (urlTextEl) {
       urlTextEl.textContent = 'https://html.servicioti.com.uy';
     }
   }
