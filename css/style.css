@@ -854,6 +854,101 @@ input:checked + .slider:before {
 }
 
 /* ==========================================================================
+   Simulator / Learning Mode Styles
+   ========================================================================== */
+
+.sim-toolbar {
+  background: #11161d;
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  z-index: 9;
+  transition: all 0.3s ease;
+}
+
+.sim-toolbar.hidden {
+  display: none !important;
+}
+
+.sim-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-emerald {
+  background: var(--accent-primary);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(63, 185, 80, 0.3);
+}
+
+.btn-emerald:hover {
+  background: var(--accent-primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-amber {
+  background: rgba(240, 136, 62, 0.2);
+  color: var(--accent-orange);
+  border: 1px solid rgba(240, 136, 62, 0.4);
+}
+
+.btn-amber:hover {
+  background: rgba(240, 136, 62, 0.3);
+}
+
+.sim-metrics {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.sim-metric-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sim-metric-label {
+  color: var(--text-secondary);
+}
+
+.sim-metric-val {
+  font-weight: 700;
+}
+
+.sim-metric-val.emerald {
+  color: var(--accent-primary);
+}
+
+.sim-metric-val.blue {
+  color: var(--accent-blue);
+}
+
+.sim-progress-track {
+  width: 120px;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.sim-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+  transition: width 0.2s ease;
+}
+
+/* ==========================================================================
    MOBILE RESPONSIVE - Compatibilidad con navegadores de celular
    ========================================================================== */
 

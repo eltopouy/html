@@ -16,11 +16,12 @@
 
   var codeEditor = null;
   var codeRunner = null;
+  var codeSimulator = null;
 
   // ---- Utility ----
 
   function escapeHTML(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   function saveCodeToLocalStorage(code) {
@@ -90,6 +91,36 @@
     consoleOutputEl.scrollTop = consoleOutputEl.scrollHeight;
   }
 
+  // ---- Simulator Progress Handler ----
+
+  function handleSimulatorProgress(data) {
+    var btnPlay = document.getElementById('btn-sim-play');
+    var wpmEl = document.getElementById('sim-stat-wpm');
+    var progressEl = document.getElementById('sim-stat-progress');
+    var progressBar = document.getElementById('sim-progress-bar');
+
+    if (wpmEl) wpmEl.textContent = data.wpm + ' WPM';
+    if (progressEl) progressEl.textContent = data.progress + '%';
+    if (progressBar) progressBar.style.width = data.progress + '%';
+
+    if (btnPlay) {
+      var icon = btnPlay.querySelector('i');
+      var label = btnPlay.querySelector('span');
+      if (data.isTyping) {
+        if (icon) icon.setAttribute('data-lucide', 'pause');
+        if (label) label.textContent = 'Pausar';
+        btnPlay.classList.add('btn-amber');
+        btnPlay.classList.remove('btn-emerald');
+      } else {
+        if (icon) icon.setAttribute('data-lucide', 'play');
+        if (label) label.textContent = (data.progress > 0 && data.progress < 100) ? 'Continuar' : 'Iniciar Tipeo';
+        btnPlay.classList.add('btn-emerald');
+        btnPlay.classList.remove('btn-amber');
+      }
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
+
   // ---- Browser Tab Title Updater ----
 
   function updateBrowserTab(htmlCode) {
@@ -99,8 +130,8 @@
 
     if (typeof htmlCode !== 'string') htmlCode = '';
 
-    // Extract <title>...</title> content from the student's HTML
-    var titleMatch = htmlCode.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    // Extract <title>...</title> content from the student's HTML without ReDoS risk
+    var titleMatch = htmlCode.match(/<title[^>]*>([^<]*)<\/title>/i);
     var pageTitle = titleMatch ? titleMatch[1].trim() : 'Sin título';
 
     // If empty title tag
@@ -378,6 +409,109 @@
         document.getElementById('btn-run').click();
       }
     });
+
+    // ---- Simulator Controls & Bindings ----
+
+    var btnSimMode = document.getElementById('btn-sim-mode');
+    var simToolbar = document.getElementById('simulator-toolbar');
+
+    if (btnSimMode && simToolbar) {
+      btnSimMode.addEventListener('click', function () {
+        simToolbar.classList.toggle('hidden');
+        var isVisible = !simToolbar.classList.contains('hidden');
+        if (isVisible && codeSimulator) {
+          var templateKey = document.getElementById('template-select').value;
+          var template = TEMPLATES[templateKey] || TEMPLATES['html-basic'];
+          codeSimulator.loadTarget(template, codeEditor.currentTab || 'html');
+        } else if (!isVisible && codeSimulator) {
+          codeSimulator.pause();
+        }
+      });
+    }
+
+    var btnSimPlay = document.getElementById('btn-sim-play');
+    if (btnSimPlay) {
+      btnSimPlay.addEventListener('click', function () {
+        if (!codeSimulator) return;
+        if (codeSimulator.isTyping) {
+          codeSimulator.pause();
+        } else {
+          codeSimulator.start();
+        }
+      });
+    }
+
+    var btnSimReset = document.getElementById('btn-sim-reset');
+    if (btnSimReset) {
+      btnSimReset.addEventListener('click', function () {
+        if (codeSimulator) codeSimulator.reset();
+      });
+    }
+
+    var btnSimTurbo = document.getElementById('btn-sim-turbo');
+    if (btnSimTurbo) {
+      btnSimTurbo.addEventListener('click', function () {
+        if (codeSimulator) codeSimulator.turbo();
+      });
+    }
+
+    var btnSimSound = document.getElementById('btn-sim-sound');
+    if (btnSimSound) {
+      btnSimSound.addEventListener('click', function () {
+        if (!codeSimulator) return;
+        codeSimulator.enableSound = !codeSimulator.enableSound;
+        var label = this.querySelector('span');
+        var icon = this.querySelector('i');
+        if (label) label.textContent = codeSimulator.enableSound ? 'Sonido ON' : 'Sonido OFF';
+        if (icon) {
+          icon.setAttribute('data-lucide', codeSimulator.enableSound ? 'volume-2' : 'volume-x');
+          icon.style.color = codeSimulator.enableSound ? 'var(--accent-primary)' : 'var(--text-muted)';
+        }
+        if (window.lucide) window.lucide.createIcons();
+      });
+    }
+
+    var btnSimSettings = document.getElementById('btn-sim-settings');
+    var simSettingsModal = document.getElementById('sim-settings-modal');
+    var btnSimSettingsClose = document.getElementById('btn-sim-settings-close');
+
+    if (btnSimSettings && simSettingsModal) {
+      btnSimSettings.addEventListener('click', function () {
+        simSettingsModal.classList.add('show');
+      });
+    }
+    if (btnSimSettingsClose && simSettingsModal) {
+      btnSimSettingsClose.addEventListener('click', function () {
+        simSettingsModal.classList.remove('show');
+      });
+    }
+
+    var simSpeedSlider = document.getElementById('sim-speed-slider');
+    var simSpeedVal = document.getElementById('sim-speed-val');
+    if (simSpeedSlider) {
+      simSpeedSlider.addEventListener('input', function () {
+        var val = parseInt(this.value);
+        if (codeSimulator) codeSimulator.baseDelay = val;
+        if (simSpeedVal) simSpeedVal.textContent = val + ' ms/char';
+      });
+    }
+
+    var simTypoSlider = document.getElementById('sim-typo-slider');
+    var simTypoVal = document.getElementById('sim-typo-val');
+    if (simTypoSlider) {
+      simTypoSlider.addEventListener('input', function () {
+        var val = parseInt(this.value);
+        if (codeSimulator) codeSimulator.typoProbability = val / 100;
+        if (simTypoVal) simTypoVal.textContent = val + '%';
+      });
+    }
+
+    var simSoundProfile = document.getElementById('sim-sound-profile');
+    if (simSoundProfile) {
+      simSoundProfile.addEventListener('change', function () {
+        if (codeSimulator) codeSimulator.soundProfile = this.value;
+      });
+    }
   }
 
   // ---- Init Application ----
@@ -388,6 +522,7 @@
 
     // 2. Init runner
     codeRunner = new CodeRunner(previewIframe, handleConsoleLog);
+    codeRunner.onConsoleClear = clearConsole;
 
     // 3. Load saved code or default template
     var savedCode = loadSavedCode() || TEMPLATES['blank'];
@@ -400,16 +535,21 @@
       js: savedCode.js
     });
 
-    // 5. Initial run
+    // 5. Init Simulator Learning Engine
+    codeSimulator = new CodeSimulator(codeEditor, codeRunner, {
+      onProgress: handleSimulatorProgress
+    });
+
+    // 6. Initial run
     codeRunner.run(codeEditor.getCode());
 
-    // 6. Update browser tab with initial title
+    // 7. Update browser tab with initial title
     updateBrowserTab(savedCode.html);
 
-    // 6. Bind events
+    // 8. Bind events
     bindEvents();
 
-    // 7. Render Lucide Icons
+    // 9. Render Lucide Icons
     if (window.lucide) {
       window.lucide.createIcons();
     }

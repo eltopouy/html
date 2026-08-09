@@ -62,6 +62,12 @@
           <span>Ejecutar</span>
         </button>
 
+        <!-- Learning & Simulator Mode Button -->
+        <button id="btn-sim-mode" class="btn btn-secondary" title="Activar/Desactivar Modo Aprendizaje y Simulador de Escritura en vivo">
+          <i data-lucide="sparkles" style="color: var(--accent-purple);"></i>
+          <span>Simulador</span>
+        </button>
+
         <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 4px;"></div>
 
         <!-- Format Code -->
@@ -108,6 +114,50 @@
         </div>
       </div>
     </header>
+
+    <!-- Simulator Interactive Learning Toolbar (Collapsible) -->
+    <div id="simulator-toolbar" class="sim-toolbar hidden">
+      <div class="sim-controls">
+        <button id="btn-sim-play" class="btn btn-emerald" title="Iniciar/Pausar simulación de escritura">
+          <i data-lucide="play"></i>
+          <span>Iniciar Tipeo</span>
+        </button>
+
+        <button id="btn-sim-reset" class="btn btn-secondary" title="Reiniciar simulación">
+          <i data-lucide="rotate-ccw"></i>
+          <span>Reiniciar</span>
+        </button>
+
+        <button id="btn-sim-turbo" class="btn btn-amber" title="Modo Turbo (escritura ultra rápida)">
+          <i data-lucide="zap"></i>
+          <span>Turbo</span>
+        </button>
+
+        <button id="btn-sim-sound" class="btn btn-secondary" title="Alternar sonido de teclado mecánico">
+          <i data-lucide="volume-2" style="color: var(--accent-primary);"></i>
+          <span>Sonido ON</span>
+        </button>
+
+        <button id="btn-sim-settings" class="btn btn-secondary" title="Ajustes de velocidad y sonido">
+          <i data-lucide="sliders"></i>
+          <span>Ajustes</span>
+        </button>
+      </div>
+
+      <div class="sim-metrics">
+        <div class="sim-metric-item">
+          <span class="sim-metric-label">Velocidad:</span>
+          <span id="sim-stat-wpm" class="sim-metric-val emerald">0 WPM</span>
+        </div>
+        <div class="sim-metric-item">
+          <span class="sim-metric-label">Progreso:</span>
+          <span id="sim-stat-progress" class="sim-metric-val blue">0%</span>
+        </div>
+        <div class="sim-progress-track">
+          <div id="sim-progress-bar" class="sim-progress-fill"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- Main Workspace Split Container -->
     <main id="workspace-body" class="workspace-body">
@@ -194,7 +244,7 @@
 
         <!-- Rendered Iframe (Sandboxed for security: allow-same-origin removed) -->
         <div class="iframe-container">
-          <iframe id="preview-iframe" title="Result preview" sandbox="allow-scripts allow-modals allow-forms"></iframe>
+          <iframe id="preview-iframe" title="Result preview" sandbox="allow-scripts allow-modals allow-forms allow-popups"></iframe>
         </div>
 
         <!-- Interactive Virtual Console Pane -->
@@ -246,11 +296,49 @@
     </div>
   </div>
 
+  <!-- Simulator Settings Modal -->
+  <div id="sim-settings-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-title">⚙️ Ajustes del Simulador de Escritura</div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <label style="font-size: 0.85rem; font-weight: 600; display: flex; justify-content: space-between;">
+            <span>Velocidad Base de Tipeo</span>
+            <span id="sim-speed-val" style="color: var(--accent-blue);">35 ms/char</span>
+          </label>
+          <input type="range" id="sim-speed-slider" min="5" max="150" value="35" style="width: 100%; margin-top: 6px;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.85rem; font-weight: 600; display: flex; justify-content: space-between;">
+            <span>Probabilidad de Errores (Typos)</span>
+            <span id="sim-typo-val" style="color: var(--accent-yellow);">3%</span>
+          </label>
+          <input type="range" id="sim-typo-slider" min="0" max="15" value="3" style="width: 100%; margin-top: 6px;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.85rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+            <span>Perfil de Teclado Mecánico</span>
+          </label>
+          <select id="sim-sound-profile" style="width: 100%; margin-top: 6px; padding: 6px 12px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); outline: none;">
+            <option value="cherry">Cherry MX Blue (Clicky)</option>
+            <option value="brown">Cherry MX Brown (Tactile)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-sim-settings-close" class="btn btn-primary">Guardar y Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Application Scripts (loaded in dependency order, NO modules) -->
   <script src="js/templates.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/runner.js"></script>
   <script src="js/exporter.js"></script>
+  <script src="js/simulator.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
