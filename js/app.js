@@ -152,32 +152,33 @@
     var previewPane = document.querySelector('.pane-preview-console');
     var isDragging = false;
 
-    resizer.addEventListener('mousedown', function (e) {
+    function startDrag(e) {
       isDragging = true;
       resizer.classList.add('dragging');
       previewIframe.style.pointerEvents = 'none';
       document.body.style.cursor = workspace.classList.contains('layout-vertical') ? 'row-resize' : 'col-resize';
       e.preventDefault();
-    });
+    }
 
-    document.addEventListener('mousemove', function (e) {
+    function doDrag(clientX, clientY) {
       if (!isDragging) return;
       var rect = workspace.getBoundingClientRect();
-      if (workspace.classList.contains('layout-vertical')) {
-        var topHeight = e.clientY - rect.top;
+      var isVertical = workspace.classList.contains('layout-vertical') || window.innerWidth <= 900;
+      if (isVertical) {
+        var topHeight = clientY - rect.top;
         var percentage = Math.max(15, Math.min(85, (topHeight / rect.height) * 100));
         editorPane.style.flex = '' + percentage;
         previewPane.style.flex = '' + (100 - percentage);
       } else {
-        var leftWidth = e.clientX - rect.left;
+        var leftWidth = clientX - rect.left;
         var percentage2 = Math.max(15, Math.min(85, (leftWidth / rect.width) * 100));
         editorPane.style.flex = '' + percentage2;
         previewPane.style.flex = '' + (100 - percentage2);
       }
       codeEditor.resize();
-    });
+    }
 
-    document.addEventListener('mouseup', function () {
+    function endDrag() {
       if (isDragging) {
         isDragging = false;
         resizer.classList.remove('dragging');
@@ -185,7 +186,22 @@
         document.body.style.cursor = 'default';
         codeEditor.resize();
       }
-    });
+    }
+
+    // Mouse events
+    resizer.addEventListener('mousedown', startDrag);
+    document.addEventListener('mousemove', function (e) { doDrag(e.clientX, e.clientY); });
+    document.addEventListener('mouseup', endDrag);
+
+    // Touch events (mobile)
+    resizer.addEventListener('touchstart', function (e) { startDrag(e); }, { passive: false });
+    document.addEventListener('touchmove', function (e) {
+      if (!isDragging) return;
+      var touch = e.touches[0];
+      doDrag(touch.clientX, touch.clientY);
+      e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('touchend', endDrag);
   }
 
   // ---- Bind All Events ----

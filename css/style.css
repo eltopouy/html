@@ -852,3 +852,359 @@ input:checked + .slider:before {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--bg-hover);
 }
+
+/* ==========================================================================
+   MOBILE RESPONSIVE - Compatibilidad con navegadores de celular
+   ========================================================================== */
+
+/* ---- Tablets y pantallas medianas (max-width: 900px) ---- */
+@media (max-width: 900px) {
+
+  /* Navbar: se convierte en dos filas */
+  .navbar {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .brand-badge {
+    display: none;
+  }
+
+  .nav-controls {
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  /* Ocultar texto de botones, solo iconos */
+  .nav-controls .btn span {
+    display: none;
+  }
+
+  .nav-controls .btn {
+    padding: 6px 8px;
+  }
+
+  /* Ocultar separadores */
+  .nav-controls > div[style*="width: 1px"] {
+    display: none;
+  }
+
+  /* Toggle auto-run: ocultar label texto */
+  .toggle-switch > span:last-child {
+    display: none;
+  }
+
+  /* Select más compacto */
+  .select-wrapper select {
+    font-size: 0.8rem;
+    padding: 6px 28px 6px 8px;
+    max-width: 180px;
+  }
+
+  /* Workspace: apilado vertical en tablets */
+  .workspace-body {
+    flex-direction: column;
+  }
+
+  .pane-editor {
+    min-width: 0;
+    min-height: 200px;
+  }
+
+  .pane-preview-console {
+    min-width: 0;
+  }
+
+  /* Resizer horizontal en modo vertical */
+  .pane-resizer {
+    width: 100%;
+    height: 8px;
+    cursor: row-resize;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .pane-resizer::after {
+    width: 24px;
+    height: 2px;
+  }
+
+  /* Browser chrome: ocultar botones de navegación */
+  .browser-nav-buttons {
+    display: none;
+  }
+
+  /* Tab bar más compacta */
+  .tab-btn {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  .tab-actions {
+    display: none;
+  }
+
+  /* Consola más pequeña */
+  .console-pane {
+    height: 120px;
+  }
+
+  /* Footer */
+  .statusbar {
+    height: auto;
+    min-height: var(--statusbar-height);
+    padding: 4px 10px;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+/* ---- Celulares (max-width: 600px) ---- */
+@media (max-width: 600px) {
+
+  /* Prevenir zoom en inputs en iOS */
+  input, select, textarea, .CodeMirror {
+    font-size: 16px !important;
+  }
+
+  /* Header más compacto */
+  .navbar {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+
+  .brand-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .brand-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .brand-title {
+    font-size: 1rem;
+  }
+
+  /* Controles: botones más grandes para touch */
+  .nav-controls .btn {
+    padding: 8px 10px;
+    min-width: 36px;
+    min-height: 36px;
+    justify-content: center;
+  }
+
+  .nav-controls .btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Botón ejecutar siempre visible con texto */
+  #btn-run span {
+    display: inline !important;
+  }
+
+  /* Select ocupa lo que pueda */
+  .select-wrapper {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .select-wrapper select {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* Layout controls: ocultar en móvil (siempre vertical) */
+  .layout-controls {
+    display: none !important;
+  }
+
+  /* Workspace: siempre vertical, editor arriba */
+  .workspace-body {
+    flex-direction: column !important;
+  }
+
+  .pane-editor {
+    flex: 1;
+    min-height: 180px;
+  }
+
+  .pane-preview-console {
+    flex: 1;
+    min-height: 180px;
+  }
+
+  /* Browser chrome simplificado */
+  .browser-tabs {
+    padding: 4px 6px 0;
+  }
+
+  .browser-tab {
+    padding: 5px 10px;
+    font-size: 0.72rem;
+    max-width: 160px;
+  }
+
+  .browser-tab-close,
+  .browser-tab-new {
+    display: none;
+  }
+
+  .browser-navbar {
+    padding: 4px 8px 6px;
+  }
+
+  .browser-url-bar {
+    padding: 4px 10px;
+    font-size: 0.72rem;
+  }
+
+  /* Preview header */
+  .preview-header {
+    height: 34px;
+    padding: 0 8px;
+  }
+
+  .preview-title {
+    font-size: 0.78rem;
+  }
+
+  /* Consola aún más pequeña */
+  .console-pane {
+    height: 100px;
+  }
+
+  .console-output {
+    padding: 6px 8px;
+    font-size: 0.72rem;
+  }
+
+  .console-title {
+    font-size: 0.75rem;
+  }
+
+  .console-title span:nth-child(2) {
+    display: none;
+  }
+
+  /* Tab bar en móvil */
+  .tab-bar {
+    padding-right: 4px;
+  }
+
+  .tab-btn {
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    gap: 5px;
+  }
+
+  .tab-btn .tab-icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* Resizer más grueso para touch */
+  .pane-resizer {
+    height: 12px;
+  }
+
+  /* Footer */
+  .statusbar {
+    font-size: 0.65rem;
+    padding: 3px 6px;
+  }
+
+  .statusbar .status-item:first-child {
+    display: none;
+  }
+
+  /* Modal responsive */
+  .modal-card {
+    width: 95%;
+    padding: 16px;
+  }
+
+  .modal-title {
+    font-size: 1rem;
+  }
+
+  .modal-body {
+    font-size: 0.85rem;
+  }
+
+  /* CodeMirror ajustes touch */
+  .CodeMirror {
+    line-height: 1.5 !important;
+  }
+
+  .CodeMirror-linenumber {
+    padding: 0 4px 0 2px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* ---- Celulares muy pequeños (max-width: 380px) ---- */
+@media (max-width: 380px) {
+
+  .brand-title {
+    font-size: 0.9rem;
+  }
+
+  .tab-btn span {
+    display: none;
+  }
+
+  .tab-btn {
+    padding: 8px 12px;
+  }
+
+  .nav-controls .btn {
+    padding: 7px 8px;
+  }
+}
+
+/* ---- Touch device improvements ---- */
+@media (hover: none) and (pointer: coarse) {
+
+  /* Targets táctiles más grandes */
+  .btn {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  .tab-btn {
+    min-height: 40px;
+  }
+
+  .console-header {
+    min-height: 36px;
+  }
+
+  /* Resizer más fácil de agarrar con dedo */
+  .pane-resizer {
+    min-height: 14px;
+  }
+
+  /* Desactivar hover effects que no aplican en touch */
+  .btn-primary:hover {
+    transform: none;
+  }
+
+  .profile-card:hover {
+    transform: none;
+  }
+}
