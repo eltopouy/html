@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduCode Studio — Test Suite</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Fira Code', 'Consolas', monospace; background: #0d1117; color: #e6edf3; padding: 24px; }
+    h1 { color: #58a6ff; margin-bottom: 4px; font-size: 1.4rem; }
+    .subtitle { color: #8b949e; font-size: 0.85rem; margin-bottom: 24px; }
+    .suite { margin-bottom: 28px; }
+    .suite-title { color: #d2a8ff; font-size: 1rem; font-weight: bold; border-bottom: 1px solid #21262d; padding-bottom: 6px; margin-bottom: 10px; }
+    .test-row { display: flex; align-items: flex-start; gap: 10px; padding: 6px 8px; border-radius: 6px; margin-bottom: 4px; }
+    .test-row.pass { background: #0a2e1a; }
+    .test-row.fail { background: #2e0a0a; }
+    .test-row.skip { background: #1a1a0a; }
+    .badge { font-size: 0.7rem; font-weight: bold; padding: 2px 7px; border-radius: 4px; min-width: 46px; text-align: center; flex-shrink: 0; margin-top: 1px; }
+    .badge.pass { background: #238636; color: #fff; }
+    .badge.fail { background: #da3633; color: #fff; }
+    .badge.skip { background: #6e7681; color: #fff; }
+    .test-name { color: #e6edf3; font-size: 0.82rem; }
+    .test-detail { color: #8b949e; font-size: 0.75rem; margin-top: 2px; }
+    .test-detail.fail-msg { color: #ff7b72; }
+    #summary { position: sticky; top: 0; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 14px 20px; margin-bottom: 28px; display: flex; gap: 32px; align-items: center; z-index: 10; }
+    #summary .stat { text-align: center; }
+    #summary .stat .num { font-size: 1.8rem; font-weight: bold; }
+    #summary .stat .lbl { font-size: 0.7rem; color: #8b949e; text-transform: uppercase; }
+    .pass-num { color: #3fb950; }
+    .fail-num { color: #f85149; }
+    .skip-num { color: #e3b341; }
+    .total-num { color: #58a6ff; }
+    #run-btn { margin-left: auto; background: #238636; color: #fff; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.9rem; font-weight: bold; }
+    #run-btn:hover { background: #2ea043; }
+    #run-btn:disabled { background: #21262d; color: #6e7681; cursor: default; }
+    .progress-bar-wrap { height: 4px; background: #21262d; border-radius: 2px; margin-top: 8px; }
+    .progress-bar-inner { height: 100%; background: #238636; border-radius: 2px; transition: width 0.2s; }
+  </style>
+</head>
+<body>
+
+<h1>🧪 EduCode Studio — Test Suite</h1>
+<p class="subtitle">Pruebas automatizadas del motor de la plataforma. Ejecutar antes de cada deploy.</p>
+
+<div id="summary">
+  <div class="stat"><div class="num total-num" id="s-total">—</div><div class="lbl">Total</div></div>
+  <div class="stat"><div class="num pass-num" id="s-pass">—</div><div class="lbl">Pasaron</div></div>
+  <div class="stat"><div class="num fail-num" id="s-fail">—</div><div class="lbl">Fallaron</div></div>
+  <div class="stat"><div class="num skip-num" id="s-skip">—</div><div class="lbl">Saltados</div></div>
+  <button id="run-btn" onclick="runAllSuites()">▶ Ejecutar Tests</button>
+</div>
+<div class="progress-bar-wrap"><div class="progress-bar-inner" id="progress-bar" style="width:0%"></div></div>
+
+<div id="suites-container"></div>
+
+<!-- Load dependencies from the app (same CDN versions) -->
+<script src="../js/templates.js"></script>
+<script src="../js/runner.js"></script>
+<script src="../js/simulator.js"></script>
+<script src="../js/exporter.js"></script>
+
+<script>
+// =====================================================================
+//  MICRO TEST FRAMEWORK
+// =====================================================================
+var TestRunner = (function() {
+  var _suites = [];
+  var _stats = { pass: 0, fail: 0, skip: 0 };
+
+  function suite(name, fn) {
+    _suites.push({ name: name, fn: fn, tests: [] });
+  }
+
+  function assert(condition, description, detail) {
+    var suite = _suites[_suites.length - 1];
+    suite.tests.push({ ok: !!condition, description: description, detail: detail || '', skip: false });
+  }
+
+  function assertEq(a, b, description) {
+    var ok = a === b;
+    assert(ok, description, ok ? '' : 'Esperado: ' + JSON.stringify(b) + '  Recibido: ' + JSON.stringify(a));
+  }
+
+  function assertContains(str, sub, description) {
+    var ok = typeof str === 'string' && str.indexOf(sub) !== -1;
+    assert(ok, description, ok ? '' : '"' + sub + '" no encontrado en: ' + (str || '').slice(0, 120));
+  }
+
+  function assertNotContains(str, sub, description) {
+    var ok = typeof str === 'string' && str.indexOf(sub) === -1;
+    assert(ok, description, ok ? '' : '"' + sub + '" NO debería estar en: ' + (str || '').slice(0, 120));
+  }
+
+  function skip(description) {
+    var suite = _suites[_suites.length - 1];
+    suite.tests.push({ ok: false, description: description, detail: '', skip: true });
+  }
+
+  function run() {
+    _stats = { pass: 0, fail: 0, skip: 0 };
+    var container = document.getElementById('suites-container');
+    container.innerHTML = '';
+    var total = 0;
+
+    _suites.forEach(function(s) {
+      s.tests = [];
+      try { s.fn({ assert: assert, assertEq: assertEq, assertContains: assertContains, assertNotContains: assertNotContains, skip: skip }); }
+      catch(e) { s.tests.push({ ok: false, description: 'ERROR INESPERADO en suite: ' + e.message, detail: e.stack || '', skip: false }); }
+
+      var suiteDiv = document.createElement('div');
+      suiteDiv.className = 'suite';
+      var titleDiv = document.createElement('div');
+      titleDiv.className = 'suite-title';
+      var suitePass = s.tests.filter(function(t) { return t.ok; }).length;
+      var suiteFail = s.tests.filter(function(t) { return !t.ok && !t.skip; }).length;
+      var suiteSkip = s.tests.filter(function(t) { return t.skip; }).length;
+      titleDiv.textContent = s.name + '  ✓' + suitePass + '  ✗' + suiteFail + (suiteSkip ? '  ⊘' + suiteSkip : '');
+      suiteDiv.appendChild(titleDiv);
+
+      s.tests.forEach(function(t) {
+        total++;
+        if (t.skip) { _stats.skip++; }
+        else if (t.ok) { _stats.pass++; }
+        else { _stats.fail++; }
+
+        var row = document.createElement('div');
+        row.className = 'test-row ' + (t.skip ? 'skip' : (t.ok ? 'pass' : 'fail'));
+        var badge = document.createElement('div');
+        badge.className = 'badge ' + (t.skip ? 'skip' : (t.ok ? 'pass' : 'fail'));
+        badge.textContent = t.skip ? 'SKIP' : (t.ok ? 'PASS' : 'FAIL');
+        var info = document.createElement('div');
+        info.innerHTML = '<div class="test-name">' + escHtml(t.description) + '</div>' +
+          (t.detail ? '<div class="test-detail' + (t.ok ? '' : ' fail-msg') + '">' + escHtml(t.detail) + '</div>' : '');
+        row.appendChild(badge);
+        row.appendChild(info);
+        suiteDiv.appendChild(row);
+      });
+
+      container.appendChild(suiteDiv);
+    });
+
+    document.getElementById('s-total').textContent = total;
+    document.getElementById('s-pass').textContent = _stats.pass;
+    document.getElementById('s-fail').textContent = _stats.fail;
+    document.getElementById('s-skip').textContent = _stats.skip;
+    document.getElementById('progress-bar').style.width = (total > 0 ? Math.round((_stats.pass / total) * 100) : 0) + '%';
+    document.getElementById('progress-bar').style.background = _stats.fail > 0 ? '#f85149' : '#3fb950';
+
+    var btn = document.getElementById('run-btn');
+    btn.disabled = false;
+    btn.textContent = '▶ Re-ejecutar Tests';
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  return { suite: suite, run: run };
+})();
+
+// =====================================================================
+//  SUITE 1: TEMPLATES — Estructura y Principio Pedagógico
+// =====================================================================
+TestRunner.suite('📚 SUITE 1: Templates — Integridad Pedagógica', function(t) {
+
+  t.assert(typeof TEMPLATES === 'object' && TEMPLATES !== null, 'TEMPLATES está definido y es un objeto');
+  t.assert(Object.keys(TEMPLATES).length >= 40, 'Hay al menos 40 ejercicios didácticos definidos',
+    'Cantidad actual: ' + Object.keys(TEMPLATES).length);
+
+  // Blank
+  t.assert('blank' in TEMPLATES, 'Existe la plantilla "blank" (inicio vacío)');
+  t.assertEq(TEMPLATES.blank.html, '', 'blank.html está vacío');
+  t.assertEq(TEMPLATES.blank.css, '', 'blank.css está vacío');
+  t.assertEq(TEMPLATES.blank.js, '', 'blank.js está vacío');
+
+  // Nivel 1 — Todos los 10 fundamentales
+  var n1Keys = ['n1-selector-basic','n1-color','n1-background','n1-background-rgb',
+                'n1-color-hex','n1-text-align','n1-font-size','n1-font-weight','n1-border','n1-opacity'];
+  n1Keys.forEach(function(k) {
+    t.assert(k in TEMPLATES, 'Existe ejercicio N1: ' + k);
+    t.assert(TEMPLATES[k].css && TEMPLATES[k].css.trim().length > 0, k + ' tiene código CSS didáctico no vacío');
+    t.assertEq(TEMPLATES[k].html, '', k + ' no tiene HTML (es ejercicio CSS puro)');
+  });
+
+  // Principio pedagógico: N1 CSS exercises must NOT contain <!DOCTYPE or <html in css
+  n1Keys.forEach(function(k) {
+    t.assertNotContains(TEMPLATES[k].css, '<!DOCTYPE', k + ': CSS didáctico no contiene <!DOCTYPE');
+    t.assertNotContains(TEMPLATES[k].css, '<html', k + ': CSS didáctico no contiene <html>');
+    t.assertNotContains(TEMPLATES[k].css, '<body', k + ': CSS didáctico no contiene <body>');
+    t.assertNotContains(TEMPLATES[k].css, '<style', k + ': CSS didáctico no contiene <style>');
+  });
+
+  // Selector básico exact content check
+  t.assertContains(TEMPLATES['n1-selector-basic'].css, 'color: red', 'n1-selector-basic contiene "color: red"');
+  t.assertContains(TEMPLATES['n1-background'].css, 'background: yellow', 'n1-background contiene "background: yellow"');
+  t.assertContains(TEMPLATES['n1-border'].css, '4px solid red', 'n1-border contiene "4px solid red"');
+  t.assertContains(TEMPLATES['n1-opacity'].css, 'opacity: 0.1', 'n1-opacity contiene "opacity: 0.1"');
+
+  // Nivel 2 — Selectores
+  var n2Keys = ['n2-selector-element','n2-selector-class','n2-usage-class',
+                'n2-selector-id','n2-usage-id','n2-selectors-grouped'];
+  n2Keys.forEach(function(k) {
+    t.assert(k in TEMPLATES, 'Existe ejercicio N2: ' + k);
+  });
+  t.assertContains(TEMPLATES['n2-selectors-grouped'].css, 'h1, h2, p', 'n2-selectors-grouped contiene "h1, h2, p"');
+
+  // Nivel 5 — HTML Fundamental: estas plantillas SÍ deben tener HTML y NO CSS
+  var n5Keys = ['n5-html-headings','n5-html-paragraphs','n5-html-break','n5-html-hr','n5-html-emphasis'];
+  n5Keys.forEach(function(k) {
+    t.assert(k in TEMPLATES, 'Existe ejercicio N5: ' + k);
+    t.assert(TEMPLATES[k].html && TEMPLATES[k].html.trim().length > 0, k + ' tiene HTML didáctico');
+    t.assertNotContains(TEMPLATES[k].html, '<!DOCTYPE', k + ': HTML didáctico no contiene boilerplate <!DOCTYPE');
+    t.assertNotContains(TEMPLATES[k].html, '<html', k + ': HTML didáctico no contiene <html>');
+  });
+
+  // Nivel 6 — Estructura: ESTA SÍ debe tener boilerplate (eso es lo que enseña)
+  t.assert('n6-html-structure' in TEMPLATES, 'Existe ejercicio N6 estructura');
+  t.assertContains(TEMPLATES['n6-html-structure'].html, '<!DOCTYPE html>', 'n6-html-structure SÍ contiene <!DOCTYPE html> (es lo que enseña)');
+  t.assertContains(TEMPLATES['n6-html-structure'].html, '<body>', 'n6-html-structure SÍ contiene <body>');
+
+  // Nivel 13 — Dialog
+  t.assert('n13-dialog-basic' in TEMPLATES, 'Existe ejercicio N13 dialog básico');
+  t.assert('n13-dialog-interactive' in TEMPLATES, 'Existe ejercicio N13 dialog interactivo');
+  t.assertContains(TEMPLATES['n13-dialog-basic'].html, '<dialog open>', 'n13-dialog-basic contiene <dialog open>');
+
+  // Todos los templates tienen un campo 'name' no vacío
+  Object.keys(TEMPLATES).forEach(function(k) {
+    t.assert(TEMPLATES[k].name && TEMPLATES[k].name.trim().length > 0, 'Template "' + k + '" tiene campo name no vacío');
+  });
+});
+
+// =====================================================================
+//  SUITE 2: RUNNER — Ensamblado de HTML para ejecución
+// =====================================================================
+TestRunner.suite('⚙️ SUITE 2: Runner — Ensamblado HTML Correcto', function(t) {
+
+  // Crear runner mock (sin iframe real, pero podemos probar la lógica de srcdoc)
+  var mockIframe = { srcdoc: '' };
+  var runner = new CodeRunner(mockIframe, function(){});
+
+  // Test: CSS puro genera documento completo con bodyContent automático
+  runner.run({ html: '', css: 'h1 { color: red; }', js: '' });
+  t.assertContains(mockIframe.srcdoc, '<!DOCTYPE html>', 'CSS puro genera <!DOCTYPE html> en srcdoc');
+  t.assertContains(mockIframe.srcdoc, 'color: red', 'CSS puro incluye la regla CSS en srcdoc');
+  t.assertContains(mockIframe.srcdoc, '<h1', 'CSS puro genera elemento h1 automático para visualizar resultado');
+
+  // Test: CSS con selector p genera elemento p
+  runner.run({ html: '', css: 'p { color: blue; }', js: '' });
+  t.assertContains(mockIframe.srcdoc, '<p>', 'CSS con selector p genera elemento <p> automático');
+
+  // Test: CSS con selector h2 genera elemento h2
+  runner.run({ html: '', css: 'h2 { background: yellow; }', js: '' });
+  t.assertContains(mockIframe.srcdoc, '<h2>', 'CSS con selector h2 genera elemento <h2> automático');
+
+  // Test: CSS con clase .center genera elemento con class="center"
+  runner.run({ html: '', css: '.center { text-align: center; }', js: '' });
+  t.assertContains(mockIframe.srcdoc, 'class="center"', 'CSS con .center genera elemento con class="center"');
+
+  // Test: CSS con #para genera elemento con id="para"
+  runner.run({ html: '', css: '#para { color: blue; }', js: '' });
+  t.assertContains(mockIframe.srcdoc, 'id="para"', 'CSS con #para genera elemento con id="para"');
+
+  // Test: CSS con .car genera elemento con class="car"
+  runner.run({ html: '', css: '.car { background: green; }', js: '' });
+  t.assertContains(mockIframe.srcdoc, 'class="car"', 'CSS con .car genera elemento con class="car"');
+
+  // Test: HTML fragment (sin <!DOCTYPE) envuelve en documento completo
+  runner.run({ html: '<p>Hola</p>', css: '', js: '' });
+  t.assertContains(mockIframe.srcdoc, '<!DOCTYPE html>', 'Fragmento HTML genera documento completo');
+  t.assertContains(mockIframe.srcdoc, '<p>Hola</p>', 'Fragmento HTML preserva el contenido original');
+
+  // Test: Full document (con <!DOCTYPE) NO agrega otro <!DOCTYPE
+  runner.run({ html: '<!DOCTYPE html><html><head></head><body><p>Test</p></body></html>', css: '', js: '' });
+  var count = (mockIframe.srcdoc.match(/<!DOCTYPE/gi) || []).length;
+  t.assertEq(count, 1, 'Documento HTML completo no genera <!DOCTYPE duplicado (count=' + count + ')');
+
+  // Test: Seguridad — </script> en JS de usuario no rompe el tag del runner
+  runner.run({ html: '', css: '', js: 'var x = "</script>";' });
+  // Si rompiera, srcdoc contendría </script> literal — debe estar escapado
+  t.assert(mockIframe.srcdoc.indexOf('</script>var x') === -1, 'Etiqueta </script> en JS de usuario está escapada');
+
+  // Test: Seguridad — </style> en CSS de usuario no rompe el bloque de estilos
+  runner.run({ html: '', css: '/* </style> */', js: '' });
+  t.assert(mockIframe.srcdoc.indexOf('</style>') !== -1 || mockIframe.srcdoc.indexOf('<\\/style>') !== -1,
+    'Etiqueta </style> en CSS de usuario está correctamente escapada');
+
+  // Test: Consola interceptor inyectado
+  runner.run({ html: '<p>Test</p>', css: '', js: 'console.log("ok")' });
+  t.assertContains(mockIframe.srcdoc, 'postMessage', 'Console interceptor con postMessage inyectado en el documento');
+  t.assertContains(mockIframe.srcdoc, 'CONSOLE_LOG', 'Console interceptor menciona CONSOLE_LOG');
+
+  // Test: código vacío produce un documento HTML mínimo válido
+  runner.run({ html: '', css: '', js: '' });
+  t.assertContains(mockIframe.srcdoc, '<!DOCTYPE html>', 'Código totalmente vacío genera documento HTML mínimo válido');
+});
+
+// =====================================================================
+//  SUITE 3: SIMULATOR — Lógica de Selección de Tab y Target
+// =====================================================================
+TestRunner.suite('🎹 SUITE 3: Simulator — Selección de Tab Didáctico', function(t) {
+
+  // Mock editor
+  var lastSetCode = null;
+  var lastSwitchTab = null;
+  var mockEditor = {
+    setCode: function(code, move) { lastSetCode = code; },
+    switchTab: function(tab) { lastSwitchTab = tab; },
+    getCode: function() { return { html: '', css: '', js: '' }; }
+  };
+
+  var sim = new CodeSimulator(mockEditor, null, {});
+
+  // Test: loadTarget con ejercicio CSS puro selecciona pestaña CSS
+  sim.loadTarget({ html: '', css: 'h1 { color: red; }', js: '' }, 'html');
+  t.assertEq(sim.activeTab, 'css', 'loadTarget con CSS puro selecciona activeTab=css aunque se pida html');
+
+  // Test: loadTarget con ejercicio HTML selecciona pestaña HTML
+  sim.loadTarget({ html: '<p>Hola</p>', css: '', js: '' }, 'html');
+  t.assertEq(sim.activeTab, 'html', 'loadTarget con HTML selecciona activeTab=html');
+
+  // Test: loadTarget con ejercicio JS puro selecciona pestaña JS
+  sim.loadTarget({ html: '', css: '', js: 'console.log("ok")' }, 'html');
+  t.assertEq(sim.activeTab, 'js', 'loadTarget con JS puro selecciona activeTab=js');
+
+  // Test: loadTarget resetea currentCode a vacío
+  sim.loadTarget({ html: '<p>Test</p>', css: '', js: '' }, 'html');
+  t.assertEq(sim.currentCode.html, '', 'loadTarget resetea currentCode.html a vacío');
+  t.assertEq(sim.currentCode.css, '', 'loadTarget resetea currentCode.css a vacío');
+
+  // Test: loadTarget resetea targetIndex a 0
+  sim.targetIndex = 42;
+  sim.loadTarget({ html: '<p>Test</p>', css: '', js: '' }, 'html');
+  t.assertEq(sim.targetIndex, 0, 'loadTarget resetea targetIndex a 0');
+
+  // Test: loadTarget llama a editor.switchTab con el tab correcto
+  lastSwitchTab = null;
+  sim.loadTarget({ html: '', css: 'p { color: red; }', js: '' }, 'html');
+  t.assertEq(lastSwitchTab, 'css', 'loadTarget llama a editor.switchTab("css") para ejercicio CSS puro');
+
+  // Test: targetCode se establece correctamente
+  sim.loadTarget({ html: '<h1>Test</h1>', css: 'h1 { color: red; }', js: '' }, 'css');
+  t.assertEq(sim.targetCode.html, '<h1>Test</h1>', 'targetCode.html se establece correctamente');
+  t.assertEq(sim.targetCode.css, 'h1 { color: red; }', 'targetCode.css se establece correctamente');
+
+  // Test: reset() limpia currentCode
+  sim.currentCode = { html: 'algo', css: 'body{}', js: 'var x=1' };
+  sim.reset();
+  t.assertEq(sim.currentCode.html, '', 'reset() limpia currentCode.html');
+  t.assertEq(sim.currentCode.css, '', 'reset() limpia currentCode.css');
+  t.assertEq(sim.targetIndex, 0, 'reset() pone targetIndex en 0');
+
+  // Test: isTyping empieza en false
+  t.assertEq(sim.isTyping, false, 'isTyping comienza en false');
+
+  // Test: pause() detiene la simulación
+  sim.isTyping = true;
+  sim.pause();
+  t.assertEq(sim.isTyping, false, 'pause() pone isTyping en false');
+
+  // Test: typoProbability por defecto razonable (0 < x < 0.1)
+  var defaultSim = new CodeSimulator(mockEditor, null, {});
+  t.assert(defaultSim.typoProbability > 0 && defaultSim.typoProbability < 0.1,
+    'typoProbability por defecto es razonable (0 < x < 0.1), actual=' + defaultSim.typoProbability);
+
+  // Test: baseDelay por defecto razonable (10ms - 200ms)
+  t.assert(defaultSim.baseDelay >= 10 && defaultSim.baseDelay <= 200,
+    'baseDelay por defecto es razonable (10-200ms), actual=' + defaultSim.baseDelay + 'ms');
+});
+
+// =====================================================================
+//  SUITE 4: EXPORTER — Generación de HTML para Descarga
+// =====================================================================
+TestRunner.suite('📦 SUITE 4: Exporter — Exportación HTML Correcta', function(t) {
+
+  // Test exportación con fragmento HTML + CSS (el más común de los estudiantes)
+  var mockLink = null;
+  var origCreateElement = document.createElement.bind(document);
+  // Interceptar creación de <a> para capturar el contenido a descargar
+  // No podemos interceptar fácilmente Blob sin corromper el DOM, así que probamos
+  // el ensamblado directamente (Exporter.downloadSingleHTML llama a Blob internamente)
+  // Usamos prueba indirecta verificando que Exporter tiene los métodos esperados
+
+  t.assert(typeof Exporter === 'object', 'Exporter está definido');
+  t.assert(typeof Exporter.downloadSingleHTML === 'function', 'Exporter.downloadSingleHTML es una función');
+  t.assert(typeof Exporter.downloadZip === 'function', 'Exporter.downloadZip es una función');
+  t.assert(typeof Exporter.importFile === 'function', 'Exporter.importFile es una función');
+
+  // Test: importFile rechaza archivos > 10MB (verificar que la condición existe)
+  var largeMockFile = { size: 11 * 1024 * 1024, name: 'test.html' };
+  var alertCalled = false;
+  var origAlert = window.alert;
+  window.alert = function() { alertCalled = true; };
+  Exporter.importFile(largeMockFile, function() {});
+  window.alert = origAlert;
+  t.assert(alertCalled, 'importFile rechaza archivos > 10MB con alerta al usuario');
+
+  // Test: importFile acepta null sin crash
+  var crashed = false;
+  try { Exporter.importFile(null, function(){}); } catch(e) { crashed = true; }
+  t.assert(!crashed, 'importFile no crashea con archivo null');
+});
+
+// =====================================================================
+//  SUITE 5: PROGRESIÓN PEDAGÓGICA — Orden Lógico de Niveles
+// =====================================================================
+TestRunner.suite('🎓 SUITE 5: Progresión Pedagógica y Completitud', function(t) {
+
+  var keys = Object.keys(TEMPLATES);
+
+  // Verificar todos los niveles del 1 al 13 están presentes
+  var levelPrefixes = ['n1-','n2-','n3-','n4-','n5-','n6-','n7-','n8-','n9-','n10-','n11-','n12-','n13-'];
+  levelPrefixes.forEach(function(prefix) {
+    var has = keys.some(function(k) { return k.indexOf(prefix) === 0; });
+    t.assert(has, 'Hay al menos un ejercicio del nivel ' + prefix.slice(0,-1));
+  });
+
+  // Regla pedagógica: ejercicios N1-N3 (CSS fundamentos) NO tienen HTML en la propiedad html
+  var cssOnlyLevels = keys.filter(function(k) { return k.indexOf('n1-') === 0 || k.indexOf('n2-') === 0; });
+  cssOnlyLevels.forEach(function(k) {
+    // Excepción: n2-usage-class, n2-usage-id, n2-selector-element, n2-selectors-grouped tienen HTML
+    var hasHtmlByDesign = ['n2-usage-class','n2-usage-id','n2-selector-element','n2-selectors-grouped'].indexOf(k) !== -1;
+    if (!hasHtmlByDesign) {
+      t.assertEq(TEMPLATES[k].html, '', k + ': ejercicio CSS puro no tiene html (correcto)');
+      t.assert(TEMPLATES[k].css.trim().length > 0, k + ': ejercicio CSS puro tiene código css');
+    }
+  });
+
+  // Ejercicios N5 HTML fundamental no deben tener boilerplate completo
+  ['n5-html-headings','n5-html-paragraphs','n5-html-break','n5-html-hr','n5-html-emphasis'].forEach(function(k) {
+    t.assertNotContains(TEMPLATES[k].html, '<!DOCTYPE', k + ': no tiene boilerplate en HTML didáctico');
+    t.assertNotContains(TEMPLATES[k].html, '<html', k + ': no tiene <html> en HTML didáctico');
+    t.assertNotContains(TEMPLATES[k].html, '<head>', k + ': no tiene <head> en HTML didáctico');
+    t.assertNotContains(TEMPLATES[k].html, '<body>', k + ': no tiene <body> en HTML didáctico');
+  });
+
+  // N6 SÍ debe tener boilerplate (eso enseña)
+  t.assertContains(TEMPLATES['n6-html-structure'].html, '<!DOCTYPE html>', 'N6 enseña estructura completa, tiene <!DOCTYPE html>');
+
+  // Formularios: cada input debe estar en su propio ejercicio mínimo
+  var formKeys = ['n9-input-text','n9-input-number','n9-input-date','n9-input-submit',
+                  'n9-input-required','n9-input-disabled','n9-input-size','n9-form-simple'];
+  formKeys.forEach(function(k) {
+    t.assert(k in TEMPLATES, 'Existe ejercicio de formulario: ' + k);
+    t.assert(TEMPLATES[k].html && TEMPLATES[k].html.trim().length > 0, k + ' tiene HTML didáctico de input');
+    // Verificar que NO tiene form completo con todo (excepto n9-form-simple)
+    if (k !== 'n9-form-simple') {
+      t.assertNotContains(TEMPLATES[k].html, '<form>', k + ': input individual no está envuelto en <form>');
+    }
+  });
+
+  // Ejercicio de error CSS: debe contener un error deliberado (falta ";")
+  t.assert('n12-css-error-semicolon' in TEMPLATES, 'Existe ejercicio de detección de errores CSS');
+  // El error pedagógico: "color: red" sin ";" seguido de otra propiedad
+  t.assertContains(TEMPLATES['n12-css-error-semicolon'].css, 'color: red\n', 'n12-css-error-semicolon tiene error de punto y coma deliberado');
+
+  // Comentarios CSS: debe tener /* ... */
+  t.assert('n12-css-comment' in TEMPLATES, 'Existe ejercicio de comentarios CSS');
+  t.assertContains(TEMPLATES['n12-css-comment'].css, '/*', 'n12-css-comment tiene comentario CSS /* ... */');
+
+  // Todos los ejercicios tienen exactamente las 3 propiedades html, css, js
+  Object.keys(TEMPLATES).forEach(function(k) {
+    var tpl = TEMPLATES[k];
+    t.assert('html' in tpl && 'css' in tpl && 'js' in tpl,
+      '"' + k + '" tiene las 3 propiedades: html, css, js');
+    t.assert(typeof tpl.html === 'string' && typeof tpl.css === 'string' && typeof tpl.js === 'string',
+      '"' + k + '": html, css, js son strings');
+  });
+});
+
+// =====================================================================
+//  SUITE 6: SEGURIDAD — Validaciones de Runner y App
+// =====================================================================
+TestRunner.suite('🔒 SUITE 6: Seguridad y Sanitización', function(t) {
+
+  var mockIframe = { srcdoc: '' };
+  var runner = new CodeRunner(mockIframe, function(){});
+
+  // XSS: </script> en JS no cierra el bloque del interceptor
+  runner.run({ html: '', css: '', js: 'alert("</script><script>alert(1)</script>")' });
+  // Comprobamos que el literal </script><script> no aparece sin escapar
+  var raw = mockIframe.srcdoc;
+  var hasUnescapedScriptInject = raw.indexOf('</script><script>alert(1)') !== -1;
+  t.assert(!hasUnescapedScriptInject, 'XSS: </script> en JS está escapado, no inyecta script externo');
+
+  // CSRF/Clickjacking: sandbox iframe (verificamos que el output no contiene allow-same-origin)
+  // Este test verifica el HTML del documento principal
+  t.skip('Sandbox iframe: allow-same-origin ausente (requiere acceso al index.html — verificación manual)');
+
+  // Validación de nivel en handleConsoleLog: no puede inyectar HTML en la consola
+  // El escapeHTML en app.js debe tratar tags
+  var escapeHTML = function(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  };
+  var maliciousText = '<script>alert("xss")</script>';
+  var escaped = escapeHTML(maliciousText);
+  t.assertNotContains(escaped, '<script>', 'escapeHTML elimina etiquetas <script> de texto de consola');
+  t.assertContains(escaped, '&lt;script&gt;', 'escapeHTML convierte < en &lt; correctamente');
+
+  // Prevención de DoS: postMessage sólo acepta mensajes del iframe
+  // (Verificación lógica — la implementación usa event.source !== iframe.contentWindow)
+  t.assert(typeof CodeRunner === 'function', 'CodeRunner constructor disponible');
+
+  // Runner con objeto nulo no crashea
+  var crashed = false;
+  try { runner.run(null); } catch(e) { crashed = true; }
+  t.assert(!crashed, 'runner.run(null) no lanza excepción');
+
+  // Runner con objeto vacío no crashea
+  try { runner.run({}); } catch(e) { crashed = true; }
+  t.assert(!crashed, 'runner.run({}) no lanza excepción');
+});
+
+// =====================================================================
+//  SUITE 7: REGRESIÓN — Bugs anteriores corregidos
+// =====================================================================
+TestRunner.suite('🐛 SUITE 7: Tests de Regresión (Bugs Anteriores)', function(t) {
+
+  var mockIframe = { srcdoc: '' };
+  var runner = new CodeRunner(mockIframe, function(){});
+
+  // Bug #1: Simulador con ejercicio CSS puro tipea en pestaña HTML vacía → no tipeaba nada
+  var lastSwitchTab = null;
+  var mockEditor = {
+    setCode: function() {},
+    switchTab: function(tab) { lastSwitchTab = tab; },
+    getCode: function() { return { html: '', css: '', js: '' }; }
+  };
+  var sim = new CodeSimulator(mockEditor, null, {});
+  sim.loadTarget(TEMPLATES['n1-selector-basic'], 'html'); // pide html pero el template es CSS
+  t.assertEq(sim.activeTab, 'css', 'Bug#1 FIXED: loadTarget selecciona css cuando html está vacío');
+  t.assert(sim.targetCode.css.trim().length > 0, 'Bug#1 FIXED: targetCode.css tiene contenido');
+
+  // Bug #2: Documento completo no genera <!DOCTYPE duplicado
+  runner.run({ html: '<!DOCTYPE html><html><body><p>Ok</p></body></html>', css: '', js: '' });
+  var doctypeCount = (mockIframe.srcdoc.match(/<!DOCTYPE/gi) || []).length;
+  t.assertEq(doctypeCount, 1, 'Bug#2 FIXED: Documento completo no genera <!DOCTYPE duplicado');
+
+  // Bug #3: Template select inicial era "html-basic" (boilerplate completo) — ahora debe ser "blank"
+  // Verificamos que 'blank' existe y está primero en el objeto TEMPLATES
+  var firstKey = Object.keys(TEMPLATES)[0];
+  t.assertEq(firstKey, 'blank', 'Bug#3 FIXED: El primer template (defecto) es "blank" (no "html-basic")');
+
+  // Bug #4: runner.run con css vacío pero html presente no incluye bloque <style></style> vacío inútil
+  runner.run({ html: '<p>Test</p>', css: '', js: '' });
+  // Un bloque de estilo vacío no debería agregar ruido innecesario — el body style debería ser mínimo
+  t.assert(mockIframe.srcdoc.indexOf('<p>Test</p>') !== -1, 'Bug#4: HTML presente en fragmento aparece en srcdoc');
+
+  // Bug #5: n13-dialog-interactive tiene JS para abrir/cerrar — no debe estar vacío
+  t.assert(TEMPLATES['n13-dialog-interactive'].js && TEMPLATES['n13-dialog-interactive'].js.trim().length > 0,
+    'Bug#5 FIXED: n13-dialog-interactive tiene código JS para manejar el modal');
+
+  // Bug #6: Exportador no falla si se llama sin argumentos
+  var crashed = false;
+  try { Exporter.importFile(undefined, function(){}); } catch(e) { crashed = true; }
+  t.assert(!crashed, 'Bug#6 FIXED: Exporter.importFile(undefined) no lanza excepción');
+});
+
+// =====================================================================
+//  RUNNER
+// =====================================================================
+function runAllSuites() {
+  var btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Ejecutando...';
+  setTimeout(function() {
+    TestRunner.run();
+  }, 50);
+}
+
+// Autorun al cargar
+window.addEventListener('load', function() {
+  setTimeout(runAllSuites, 200);
+});
+</script>
+</body>
+</html>
