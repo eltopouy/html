@@ -149,8 +149,7 @@ var CodeSimulator = (function () {
     this.startTime = null;
     this.charactersTyped = 0;
 
-    if (this.editor) {
-      this.editor.setCode(this.currentCode);
+    if (this.editor && this.editor.switchTab) {
       this.editor.switchTab(this.activeTab);
     }
     this._notifyUpdate();

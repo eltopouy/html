@@ -86,7 +86,7 @@
           <i data-lucide="code-2"></i>
         </div>
         <span class="brand-title">EduCode Studio</span>
-        <span class="brand-badge">Para estudiantes de Liceos y UTU</span>
+        <span class="brand-badge">Liceos / UTU</span>
       </div>
 
       <div class="nav-controls">
@@ -95,6 +95,8 @@
           <select id="template-select"></select>
           <i data-lucide="chevron-down" class="select-icon"></i>
         </div>
+
+        <div class="nav-divider"></div>
 
         <!-- Auto Run Toggle -->
         <label class="toggle-switch" title="Ejecución automática en vivo al escribir">
@@ -117,7 +119,7 @@
           <span>Simulador</span>
         </button>
 
-        <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 4px;"></div>
+        <div class="nav-divider"></div>
 
         <!-- Format Code -->
         <button id="btn-format" class="btn btn-secondary" title="Formatear e indentar código">
@@ -132,25 +134,60 @@
         </button>
         <input type="file" id="import-file-input" accept=".html,.css,.js" style="display: none;">
 
-        <!-- Export Dropdown / Actions -->
-        <button id="btn-export-zip" class="btn btn-secondary" title="Descargar proyecto completo en archivo .ZIP">
-          <i data-lucide="archive"></i>
-          <span>ZIP</span>
+        <!-- Quick Resources Gallery -->
+        <button id="btn-resources" class="btn btn-secondary" title="Galería de imágenes, fuentes y componentes de ejemplo">
+          <i data-lucide="image"></i>
+          <span>Recursos</span>
         </button>
 
-        <button id="btn-export-html" class="btn btn-secondary" title="Descargar como único archivo .HTML ejecutable">
-          <i data-lucide="file-code"></i>
-          <span>HTML</span>
-        </button>
+        <!-- Unified Export Dropdown -->
+        <div class="dropdown-wrapper">
+          <button id="btn-export-dropdown" class="btn btn-secondary" title="Opciones de descarga y exportación">
+            <i data-lucide="download"></i>
+            <span>Exportar</span>
+            <i data-lucide="chevron-down" style="width:12px;height:12px;margin-left:2px;"></i>
+          </button>
+          <div id="export-menu" class="dropdown-menu">
+            <button id="btn-export-zip" class="dropdown-item">
+              <i data-lucide="archive"></i>
+              <div>
+                <strong>Proyecto .ZIP</strong>
+                <small>Archivos separados (html, css, js)</small>
+              </div>
+            </button>
+            <button id="btn-export-html" class="dropdown-item">
+              <i data-lucide="file-code"></i>
+              <div>
+                <strong>Archivo Único .HTML</strong>
+                <small>Ejecutable directo en navegador</small>
+              </div>
+            </button>
+            <button id="btn-export-share" class="dropdown-item">
+              <i data-lucide="link"></i>
+              <div>
+                <strong>Generar Enlace Compartible</strong>
+                <small>Para enviar por WhatsApp, Moodle o CREA</small>
+              </div>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button id="btn-export-repo" class="dropdown-item">
+              <i data-lucide="github"></i>
+              <div>
+                <strong>Código Repositorio completo (.ZIP)</strong>
+                <small>Para respaldar o actualizar en GitHub</small>
+              </div>
+            </button>
+          </div>
+        </div>
 
-        <button id="btn-reset" class="btn btn-secondary" title="Restablecer código a la plantilla original">
+        <button id="btn-reset" class="btn btn-icon-only" title="Restablecer código a la plantilla original">
           <i data-lucide="rotate-ccw"></i>
         </button>
 
-        <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 4px;"></div>
+        <div class="nav-divider"></div>
 
         <!-- Layout Switchers -->
-        <div class="layout-controls" style="display: flex; gap: 4px;">
+        <div class="layout-controls">
           <button class="btn btn-icon-only active" data-layout="side" title="Modo División Vertical (Side by Side)">
             <i data-lucide="columns-2"></i>
           </button>
@@ -217,25 +254,46 @@
           <div class="tabs-group">
             <button class="tab-btn active" data-tab="html">
               <i data-lucide="file-code" class="tab-icon"></i>
-              <span>index.html</span>
+              <span id="tab-label-html">index.html</span>
+              <span id="dot-html" class="tab-code-dot" title="Tiene código"></span>
             </button>
             <button class="tab-btn" data-tab="css">
               <i data-lucide="palette" class="tab-icon"></i>
-              <span>styles.css</span>
+              <span id="tab-label-css">styles.css</span>
+              <span id="dot-css" class="tab-code-dot" title="Tiene código"></span>
             </button>
             <button class="tab-btn" data-tab="js">
               <i data-lucide="file-json" class="tab-icon"></i>
-              <span>script.js</span>
+              <span id="tab-label-js">script.js</span>
+              <span id="dot-js" class="tab-code-dot" title="Tiene código"></span>
             </button>
           </div>
 
           <div class="tab-actions">
-            <span style="font-size: 0.75rem; color: var(--text-muted); margin-right: 8px;">CodeEditor Engine</span>
+            <button id="btn-copy-code" class="btn btn-secondary btn-xs" title="Copiar código del tab activo al portapapeles">
+              <i data-lucide="copy" style="width:13px;height:13px;"></i>
+              <span id="copy-btn-text">Copiar</span>
+            </button>
           </div>
         </div>
 
         <div class="editor-container">
           <div id="monaco-editor-element"></div>
+          <div class="editor-statusbar">
+            <div class="statusbar-left">
+              <span id="editor-pos-info">Lín 1, Col 1</span>
+              <span class="statusbar-divider"></span>
+              <span id="editor-tab-info" style="font-weight:600; color:var(--accent-blue);">HTML</span>
+            </div>
+            <div class="statusbar-right">
+              <span id="editor-saved-status" class="saved-status" title="Guardado automático en almacenamiento local"><i data-lucide="check" style="width:12px;height:12px;color:#3fb950;"></i> Guardado</span>
+              <span class="statusbar-divider"></span>
+              <button id="btn-shortcuts-trigger" class="statusbar-btn" title="Ver atajos de teclado del editor">
+                <i data-lucide="keyboard" style="width:12px;height:12px;"></i>
+                <span>Atajos</span>
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -244,49 +302,52 @@
 
       <!-- Right Pane: Live Preview & Virtual Console -->
       <section class="pane-preview-console">
-        <!-- Preview Header -->
+        <!-- Sleek Unified Browser Bar Header -->
         <div class="preview-header">
           <div class="preview-title">
-            <span class="live-dot"></span>
-            <span>Vista Previa en Vivo</span>
+            <div class="window-dots">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+            </div>
+            <div class="browser-url-bar">
+              <i data-lucide="lock" style="width:11px;height:11px;color:#3fb950;flex-shrink:0;"></i>
+              <span class="browser-url-text" id="browser-url-text">https://html.servicioti.com.uy</span>
+              <span id="preview-status-pill" class="preview-status-pill live" title="Estado de ejecución">
+                <span class="pill-dot"></span>
+                <span id="preview-status-text">En vivo</span>
+              </span>
+            </div>
           </div>
           <div class="preview-actions">
-            <button id="btn-fullscreen" class="btn btn-icon-only" title="Pantalla Completa">
-              <i data-lucide="maximize-2"></i>
+            <button id="btn-inspect-element" class="btn btn-icon-only btn-sm" title="Inspeccionar elemento de la vista previa (haz clic en un elemento para ubicarlo en el código)">
+              <i data-lucide="crosshair" style="width:14px;height:14px;"></i>
+            </button>
+            <button id="btn-reload-preview" class="btn btn-icon-only btn-sm" title="Recargar vista previa">
+              <i data-lucide="rotate-cw" style="width:14px;height:14px;"></i>
+            </button>
+            <button id="btn-toggle-explanation" class="btn btn-secondary btn-sm" title="Mostrar/Ocultar explicación pedagógica sobre el tema seleccionado">
+              <i data-lucide="book-open" style="width:14px;height:14px;color:var(--accent-yellow);"></i>
+              <span>Explicación</span>
+            </button>
+            <button id="btn-fullscreen" class="btn btn-icon-only btn-sm" title="Pantalla Completa">
+              <i data-lucide="maximize-2" style="width:14px;height:14px;"></i>
             </button>
           </div>
         </div>
 
-        <!-- Simulated Browser Chrome -->
-        <div class="browser-chrome">
-          <!-- Tab Bar -->
-          <div class="browser-tabs">
-            <div class="browser-tab active" id="browser-tab-active">
-              <svg class="browser-tab-favicon" viewBox="0 0 16 16" width="14" height="14">
-                <rect width="16" height="16" rx="3" fill="#3b82f6"/>
-                <text x="8" y="12" text-anchor="middle" font-size="11" fill="white" font-weight="bold">W</text>
-              </svg>
-              <span class="browser-tab-title" id="browser-tab-title">Mi Primera Página Web</span>
-              <button class="browser-tab-close" title="Cerrar pestaña">×</button>
+        <!-- Pedagogical Explanation Panel (Collapsible) -->
+        <div id="explanation-panel" class="explanation-panel hidden">
+          <div class="explanation-content">
+            <div class="explanation-header">
+              <div class="explanation-title-badge">
+                <i data-lucide="lightbulb" style="width: 16px; height: 16px; color: var(--accent-yellow);"></i>
+                <strong id="explanation-title">Explicación Pedagógica</strong>
+              </div>
+              <button id="btn-close-explanation" class="btn-close-panel" title="Ocultar explicación">&times;</button>
             </div>
-            <button class="browser-tab-new" title="Nueva pestaña">+</button>
-          </div>
-          <!-- Navigation Bar -->
-          <div class="browser-navbar">
-            <div class="browser-nav-buttons">
-              <button class="browser-nav-btn" title="Atrás">
-                <i data-lucide="arrow-left" style="width:14px;height:14px;"></i>
-              </button>
-              <button class="browser-nav-btn" title="Adelante">
-                <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
-              </button>
-              <button class="browser-nav-btn" title="Recargar">
-                <i data-lucide="rotate-cw" style="width:14px;height:14px;"></i>
-              </button>
-            </div>
-            <div class="browser-url-bar">
-              <i data-lucide="lock" style="width:12px;height:12px;color:#3fb950;flex-shrink:0;"></i>
-              <span class="browser-url-text" id="browser-url-text">https://html.servicioti.com.uy</span>
+            <div id="explanation-body" class="explanation-body">
+              Selecciona un ejemplo pedagógico para ver la explicación didáctica de la etiqueta o concepto CSS.
             </div>
           </div>
         </div>
@@ -297,7 +358,7 @@
         </div>
 
         <!-- Interactive Virtual Console Pane -->
-        <div class="console-pane">
+        <div id="console-pane" class="console-pane collapsed">
           <div class="console-header" title="Haz clic para colapsar/expandir la consola">
             <div class="console-title">
               <i data-lucide="terminal" style="width: 16px; height: 16px; color: var(--accent-blue);"></i>
@@ -305,6 +366,7 @@
               <span id="console-badge" class="console-badge">0 mensajes</span>
             </div>
             <div class="console-actions">
+              <span class="console-hint" style="font-size: 0.72rem; color: var(--text-muted); margin-right: 4px;">Clic para abrir/cerrar</span>
               <button id="btn-clear-console" class="btn btn-icon-only" style="padding: 2px 6px;" title="Limpiar Consola">
                 <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
               </button>
@@ -382,11 +444,179 @@
     </div>
   </div>
 
+  <!-- Keyboard Shortcuts Modal -->
+  <div id="shortcuts-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-title" style="display:flex; align-items:center; gap:8px;">
+        <i data-lucide="keyboard" style="width:20px;height:20px;color:var(--accent-blue);"></i>
+        <span>Atajos de Teclado del Editor</span>
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:10px;">
+        <div class="shortcut-row">
+          <div class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></div>
+          <div class="shortcut-desc">Ejecutar código y actualizar la vista previa</div>
+        </div>
+        <div class="shortcut-row">
+          <div class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>S</kbd></div>
+          <div class="shortcut-desc">Guardar cambios en el navegador</div>
+        </div>
+        <div class="shortcut-row">
+          <div class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>F</kbd></div>
+          <div class="shortcut-desc">Buscar texto en el editor activo</div>
+        </div>
+        <div class="shortcut-row">
+          <div class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>/</kbd></div>
+          <div class="shortcut-desc">Comentar o descomentar línea seleccionada</div>
+        </div>
+        <div class="shortcut-row">
+          <div class="shortcut-keys"><kbd>Tab</kbd> / <kbd>Shift+Tab</kbd></div>
+          <div class="shortcut-desc">Aumentar o reducir la sangría (indentación)</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-shortcuts-close" class="btn btn-primary">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Resources & Assets Gallery Modal -->
+  <div id="resources-modal" class="modal-overlay">
+    <div class="modal-card modal-lg">
+      <div class="modal-title" style="display:flex; align-items:center; justify-space-between;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <i data-lucide="image" style="width:20px;height:20px;color:var(--accent-blue);"></i>
+          <span>Galería de Recursos y Componentes</span>
+        </div>
+        <button id="btn-resources-close-x" class="btn btn-icon-only btn-sm" style="border:none;">✕</button>
+      </div>
+
+      <div class="resources-tabs">
+        <button class="res-tab-btn active" data-res-tab="images">🖼️ Imágenes Muestra</button>
+        <button class="res-tab-btn" data-res-tab="fonts">🔤 Fuentes Google</button>
+        <button class="res-tab-btn" data-res-tab="snippets">⚡ Componentes HTML</button>
+      </div>
+
+      <div class="modal-body res-tab-content active" id="res-tab-images">
+        <p class="res-subtitle">Copia o inserta rápidamente etiquetas de imagen optimizadas para tus páginas:</p>
+        <div class="resources-grid">
+          <div class="res-card">
+            <img src="https://picsum.photos/id/1015/300/180" alt="Paisaje" class="res-card-img" />
+            <div class="res-card-title">Paisaje de Montaña</div>
+            <div class="res-card-desc">800 × 400 px</div>
+            <button class="btn btn-primary btn-xs btn-insert-res" data-snippet='<img src="https://picsum.photos/id/1015/800/400" alt="Paisaje de Montaña" style="width:100%; max-width:600px; border-radius:8px;">'>Insertar en HTML</button>
+          </div>
+          <div class="res-card">
+            <img src="https://picsum.photos/id/64/180/180" alt="Avatar" class="res-card-img avatar" />
+            <div class="res-card-title">Avatar de Usuario</div>
+            <div class="res-card-desc">200 × 200 px (Circular)</div>
+            <button class="btn btn-primary btn-xs btn-insert-res" data-snippet='<img src="https://picsum.photos/id/64/200/200" alt="Avatar de usuario" style="width:100px; height:100px; border-radius:50%;">'>Insertar en HTML</button>
+          </div>
+          <div class="res-card">
+            <img src="https://picsum.photos/id/180/300/180" alt="Tecnología" class="res-card-img" />
+            <div class="res-card-title">Laptop y Trabajo</div>
+            <div class="res-card-desc">800 × 400 px</div>
+            <button class="btn btn-primary btn-xs btn-insert-res" data-snippet='<img src="https://picsum.photos/id/180/800/400" alt="Tecnología y Laptops" style="width:100%; max-width:600px; border-radius:8px;">'>Insertar en HTML</button>
+          </div>
+          <div class="res-card">
+            <img src="https://picsum.photos/id/237/300/180" alt="Mascota" class="res-card-img" />
+            <div class="res-card-title">Mascota (Perrito)</div>
+            <div class="res-card-desc">600 × 400 px</div>
+            <button class="btn btn-primary btn-xs btn-insert-res" data-snippet='<img src="https://picsum.photos/id/237/600/400" alt="Perrito de muestra" style="width:100%; max-width:500px; border-radius:8px;">'>Insertar en HTML</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-body res-tab-content" id="res-tab-fonts" style="display:none;">
+        <p class="res-subtitle">Copia la etiqueta HTML para incluir tipografías de Google Fonts:</p>
+        <div class="fonts-list">
+          <div class="font-item">
+            <div>
+              <strong style="font-family:'Montserrat', sans-serif;">Montserrat</strong> — Elegante y moderna
+              <code class="font-code">&lt;link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&amp;display=swap" rel="stylesheet"&gt;</code>
+            </div>
+            <button class="btn btn-secondary btn-xs btn-insert-res" data-snippet='<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">'>Insertar &lt;link&gt;</button>
+          </div>
+          <div class="font-item">
+            <div>
+              <strong style="font-family:'Outfit', sans-serif;">Outfit</strong> — Minimalista y limpia
+              <code class="font-code">&lt;link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&amp;display=swap" rel="stylesheet"&gt;</code>
+            </div>
+            <button class="btn btn-secondary btn-xs btn-insert-res" data-snippet='<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">'>Insertar &lt;link&gt;</button>
+          </div>
+          <div class="font-item">
+            <div>
+              <strong style="font-family:'Playfair Display', serif;">Playfair Display</strong> — Clásica con serifa
+              <code class="font-code">&lt;link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;800&amp;display=swap" rel="stylesheet"&gt;</code>
+            </div>
+            <button class="btn btn-secondary btn-xs btn-insert-res" data-snippet='<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">'>Insertar &lt;link&gt;</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-body res-tab-content" id="res-tab-snippets" style="display:none;">
+        <p class="res-subtitle">Estructuras HTML listas para usar en tu proyecto:</p>
+        <div class="snippets-grid">
+          <div class="snippet-card">
+            <strong>🎴 Tarjeta de Presentación (Card)</strong>
+            <pre class="snippet-preview"><code>&lt;div class="card"&gt;
+  &lt;h3&gt;Título de la Tarjeta&lt;/h3&gt;
+  &lt;p&gt;Descripción breve...&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+            <button class="btn btn-primary btn-xs btn-insert-res" data-snippet='<div class="card" style="padding:16px; border:1px solid #e2e8f0; border-radius:8px; background:#ffffff; box-shadow:0 2px 4px rgba(0,0,0,0.05); max-width:320px;">
+  <h3 style="margin-top:0; color:#1e293b;">Título de la Tarjeta</h3>
+  <p style="color:#64748b; font-size:0.9rem;">Esta es una tarjeta de presentación con bordes redondeados y sombra.</p>
+</div>'>Insertar Tarjeta</button>
+          </div>
+
+          <div class="snippet-card">
+            <strong>🔘 Botón Estilizado</strong>
+            <pre class="snippet-preview"><code>&lt;button class="btn-demo"&gt;Hacer Clic&lt;/button&gt;</code></pre>
+            <button class="btn btn-primary btn-xs btn-insert-res" data-snippet='<button style="padding:10px 20px; background:#2563eb; color:#ffffff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">Hacer Clic Aquí</button>'>Insertar Botón</button>
+          </div>
+
+          <div class="snippet-card">
+            <strong>📊 Tabla de Datos Formateada</strong>
+            <pre class="snippet-preview"><code>&lt;table&gt;&lt;tr&gt;&lt;th&gt;Nombre&lt;/th&gt;&lt;/tr&gt;...&lt;/table&gt;</code></pre>
+            <button class="btn btn-primary btn-xs btn-insert-res" data-snippet='<table style="width:100%; border-collapse:collapse; text-align:left;">
+  <thead>
+    <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">
+      <th style="padding:8px;">Estudiante</th>
+      <th style="padding:8px;">Liceo / UTU</th>
+      <th style="padding:8px;">Nota</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="border-bottom:1px solid #e2e8f0;">
+      <td style="padding:8px;">Mateo</td>
+      <td style="padding:8px;">Liceo N° 1</td>
+      <td style="padding:8px;">12</td>
+    </tr>
+    <tr>
+      <td style="padding:8px;">Sofia</td>
+      <td style="padding:8px;">UTU Informática</td>
+      <td style="padding:8px;">11</td>
+    </tr>
+  </tbody>
+</table>'>Insertar Tabla</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-resources-close" class="btn btn-primary">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notifications Container -->
+  <div id="toast-container" class="toast-container"></div>
+
   <!-- Application Scripts (loaded in dependency order, NO modules) -->
   <script src="js/templates.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/runner.js"></script>
   <script src="js/exporter.js"></script>
+  <script src="js/share.js"></script>
   <script src="js/simulator.js"></script>
   <script src="js/app.js"></script>
 </body>

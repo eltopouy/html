@@ -21,9 +21,21 @@ var CodeRunner = (function () {
           self.onConsoleLog(event.data);
         } else if (event.data.type === 'CONSOLE_CLEAR' && self.onConsoleClear) {
           self.onConsoleClear();
+        } else if (event.data.type === 'ELEMENT_INSPECTED' && self.onElementInspected) {
+          self.onElementInspected(event.data);
         }
       }
     });
+  };
+
+  CodeRunner.prototype.setInspectorMode = function (active) {
+    if (this.iframe && this.iframe.contentWindow) {
+      try {
+        this.iframe.contentWindow.postMessage({ type: 'SET_INSPECTOR', active: !!active }, '*');
+      } catch (e) {
+        console.error('Error setting inspector mode:', e);
+      }
+    }
   };
 
   CodeRunner.prototype.run = function (code) {
@@ -84,6 +96,42 @@ var CodeRunner = (function () {
       '  window.addEventListener("error", function(e) {' +
       '    sendLog("error", ["Error: " + e.message + " (línea " + e.lineno + ")"]);' +
       '  });' +
+      '  window.addEventListener("message", function(e) {' +
+      '    if (e.data && e.data.type === "SET_INSPECTOR") {' +
+      '      window.__INSPECTOR_ACTIVE__ = !!e.data.active;' +
+      '      if (!e.data.active && window.__CURRENT_INSPECTED_EL__) {' +
+      '        window.__CURRENT_INSPECTED_EL__.style.outline = "";' +
+      '        window.__CURRENT_INSPECTED_EL__ = null;' +
+      '      }' +
+      '    }' +
+      '  });' +
+      '  document.addEventListener("mouseover", function(e) {' +
+      '    if (!window.__INSPECTOR_ACTIVE__) return;' +
+      '    e.stopPropagation();' +
+      '    var el = e.target;' +
+      '    if (window.__CURRENT_INSPECTED_EL__ && window.__CURRENT_INSPECTED_EL__ !== el) {' +
+      '      window.__CURRENT_INSPECTED_EL__.style.outline = "";' +
+      '    }' +
+      '    window.__CURRENT_INSPECTED_EL__ = el;' +
+      '    el.style.outline = "2px dashed #2563eb";' +
+      '  }, true);' +
+      '  document.addEventListener("click", function(e) {' +
+      '    if (!window.__INSPECTOR_ACTIVE__) return;' +
+      '    e.preventDefault();' +
+      '    e.stopPropagation();' +
+      '    var el = e.target;' +
+      '    if (el) {' +
+      '      el.style.outline = "";' +
+      '      window.__INSPECTOR_ACTIVE__ = false;' +
+      '      window.parent.postMessage({' +
+      '        type: "ELEMENT_INSPECTED",' +
+      '        tagName: el.tagName,' +
+      '        id: el.id,' +
+      '        className: el.className,' +
+      '        textContent: el.textContent ? el.textContent.trim().substring(0, 30) : ""' +
+      '      }, "*");' +
+      '    }' +
+      '  }, true);' +
       '})();' +
       '<\/script>';
 
@@ -96,11 +144,16 @@ var CodeRunner = (function () {
 
     if (isFullDocument) {
       fullSource = html;
-      // Inject style and consoleInterceptor before </head> if present, or at beginning
+      // Inject style and consoleInterceptor before </head> if present, or after <head>, or after <!DOCTYPE>
+      var headCode = styleBlock + consoleInterceptor;
       if (/<\/head>/i.test(fullSource)) {
-        fullSource = fullSource.replace(/<\/head>/i, styleBlock + consoleInterceptor + '</head>');
+        fullSource = fullSource.replace(/<\/head>/i, headCode + '</head>');
+      } else if (/<head[^>]*>/i.test(fullSource)) {
+        fullSource = fullSource.replace(/(<head[^>]*>)/i, '$1' + headCode);
+      } else if (/<!DOCTYPE[^>]*>/i.test(fullSource)) {
+        fullSource = fullSource.replace(/(<!DOCTYPE[^>]*>)/i, '$1' + headCode);
       } else {
-        fullSource = styleBlock + consoleInterceptor + fullSource;
+        fullSource = headCode + fullSource;
       }
       // Inject script block before </body> if present, or at end
       if (/<\/body>/i.test(fullSource)) {
@@ -114,9 +167,9 @@ var CodeRunner = (function () {
       // If HTML is empty, generate an appropriate minimal target element based on CSS selectors for instant visual feedback
       if (!bodyContent && safeCss.trim()) {
         if (/^\s*\.center/i.test(safeCss) || /class=["']center["']/i.test(safeCss)) {
-          bodyContent = '<h1 class="center">Heading</h1>';
+          bodyContent = '<h1 class="center">Encabezado Centrado</h1>';
         } else if (/^\s*#para/i.test(safeCss) || /id=["']para["']/i.test(safeCss)) {
-          bodyContent = '<p id="para">First Paragraph.</p>';
+          bodyContent = '<p id="para">Primer Párrafo.</p>';
         } else if (/^\s*\.car/i.test(safeCss)) {
           bodyContent = '<div class="car">Auto de Ejemplo</div>';
         } else if (/^\s*p\b/i.test(safeCss)) {

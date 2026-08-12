@@ -25,6 +25,10 @@ var Exporter = {
       if (styleBlock) {
         if (/<\/head>/i.test(fullContent)) {
           fullContent = fullContent.replace(/<\/head>/i, styleBlock + '\n</head>');
+        } else if (/<head[^>]*>/i.test(fullContent)) {
+          fullContent = fullContent.replace(/(<head[^>]*>)/i, '$1\n' + styleBlock);
+        } else if (/<!DOCTYPE[^>]*>/i.test(fullContent)) {
+          fullContent = fullContent.replace(/(<!DOCTYPE[^>]*>)/i, '$1\n' + styleBlock);
         } else {
           fullContent = styleBlock + '\n' + fullContent;
         }
@@ -73,6 +77,10 @@ var Exporter = {
         htmlContent = html;
         if (/<\/head>/i.test(htmlContent)) {
           htmlContent = htmlContent.replace(/<\/head>/i, cssRef + '\n</head>');
+        } else if (/<head[^>]*>/i.test(htmlContent)) {
+          htmlContent = htmlContent.replace(/(<head[^>]*>)/i, '$1\n' + cssRef);
+        } else if (/<!DOCTYPE[^>]*>/i.test(htmlContent)) {
+          htmlContent = htmlContent.replace(/(<!DOCTYPE[^>]*>)/i, '$1\n' + cssRef);
         } else {
           htmlContent = cssRef + '\n' + htmlContent;
         }
@@ -118,20 +126,29 @@ var Exporter = {
   importFile: function (file, callback) {
     if (!file) return;
 
+    var fileName = file.name || '';
+    var parts = fileName.split('.');
+    var extension = parts.length > 1 ? parts.pop().toLowerCase() : '';
+    var allowedExts = ['html', 'css', 'js'];
+
+    if (!extension || allowedExts.indexOf(extension) === -1) {
+      alert('Tipo de archivo no permitido. Solo se pueden subir archivos .html, .css y .js.');
+      return;
+    }
+
     if (file.size > 10 * 1024 * 1024) {
       alert('El archivo es demasiado grande. El tamaño máximo permitido es 10 MB.');
       return;
     }
 
     var reader = new FileReader();
-    var extension = file.name.split('.').pop().toLowerCase();
 
     reader.onload = function (e) {
       var content = e.target.result || '';
       var targetTab = 'html';
       if (extension === 'css') targetTab = 'css';
       if (extension === 'js') targetTab = 'js';
-      if (callback) callback({ type: targetTab, content: content });
+      if (callback) callback({ type: targetTab, content: content, filename: fileName });
     };
 
     reader.onerror = function () {
@@ -139,5 +156,57 @@ var Exporter = {
     };
 
     reader.readAsText(file);
+  },
+
+  downloadRepoZip: function (callback) {
+    function doZip() {
+      fetch('/api/source-files')
+        .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          if (!data.success || !data.files) {
+            throw new Error(data.error || 'No se pudieron obtener los archivos del servidor');
+          }
+
+          var zip = new JSZip();
+          data.files.forEach(function (fileObj) {
+            zip.file(fileObj.path, fileObj.content);
+          });
+
+          return zip.generateAsync({
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+          });
+        })
+        .then(function (blob) {
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = 'educode-studio-v3.0.0-repo.zip';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function () {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 300);
+          if (callback) callback(null);
+        })
+        .catch(function (err) {
+          alert('Error al generar el paquete ZIP del repositorio: ' + err.message);
+          if (callback) callback(err);
+        });
+    }
+
+    if (typeof JSZip === 'undefined') {
+      var script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      script.onload = doZip;
+      document.head.appendChild(script);
+    } else {
+      doZip();
+    }
   }
 };

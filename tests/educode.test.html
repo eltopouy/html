@@ -223,10 +223,17 @@ TestRunner.suite('📚 SUITE 1: Templates — Integridad Pedagógica', function(
   t.assert('n13-dialog-interactive' in TEMPLATES, 'Existe ejercicio N13 dialog interactivo');
   t.assertContains(TEMPLATES['n13-dialog-basic'].html, '<dialog open>', 'n13-dialog-basic contiene <dialog open>');
 
-  // Todos los templates tienen un campo 'name' no vacío
+  // Todos los templates tienen un campo 'name' y 'explanation' no vacíos
   Object.keys(TEMPLATES).forEach(function(k) {
     t.assert(TEMPLATES[k].name && TEMPLATES[k].name.trim().length > 0, 'Template "' + k + '" tiene campo name no vacío');
+    t.assert(TEMPLATES[k].explanation && TEMPLATES[k].explanation.trim().length > 0, 'Template "' + k + '" tiene campo explanation no vacío');
   });
+
+  // Orden: HTML primero que CSS
+  var keys = Object.keys(TEMPLATES);
+  var idxHTML = keys.indexOf('n5-html-headings');
+  var idxCSS = keys.indexOf('n1-selector-basic');
+  t.assert(idxHTML !== -1 && idxCSS !== -1 && idxHTML < idxCSS, 'Ejemplos HTML (n5-html-headings) están ordenados antes que los de CSS (n1-selector-basic)');
 });
 
 // =====================================================================
@@ -391,8 +398,15 @@ TestRunner.suite('📦 SUITE 4: Exporter — Exportación HTML Correcta', functi
   var origAlert = window.alert;
   window.alert = function() { alertCalled = true; };
   Exporter.importFile(largeMockFile, function() {});
-  window.alert = origAlert;
   t.assert(alertCalled, 'importFile rechaza archivos > 10MB con alerta al usuario');
+
+  // Test: importFile rechaza archivos no permitidos (.txt, .png)
+  var alertMsg = '';
+  window.alert = function(msg) { alertMsg = msg; };
+  Exporter.importFile({ size: 100, name: 'document.txt' }, function() {});
+  t.assert(alertMsg.indexOf('no permitido') !== -1, 'importFile rechaza archivos .txt');
+
+  window.alert = origAlert;
 
   // Test: importFile acepta null sin crash
   var crashed = false;

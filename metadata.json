@@ -1,0 +1,6 @@
+{
+  "name": "EduCode Studio",
+  "description": "Editor web de código HTML, CSS y JS en tiempo real con simulador de escritura pedagógico para estudiantes",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

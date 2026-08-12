@@ -238,14 +238,19 @@ assert('n13-dialog-interactive' in TEMPLATES, 'Existe: n13-dialog-interactive');
 assertContains(TEMPLATES['n13-dialog-basic'].html, '<dialog open>', 'n13-dialog-basic tiene <dialog open>');
 assert(TEMPLATES['n13-dialog-interactive'].js.trim().length > 0, 'n13-dialog-interactive tiene JS no vacío');
 
-// Todos los templates tienen html, css, js como strings
+// Todos los templates tienen html, css, js, explanation como strings
 keys.forEach(function(k) {
   var t = TEMPLATES[k];
-  assert('html' in t && 'css' in t && 'js' in t && 'name' in t,
-    '"' + k + '" tiene html, css, js, name');
-  assert(typeof t.html === 'string' && typeof t.css === 'string' && typeof t.js === 'string',
-    '"' + k + '": html/css/js son strings');
+  assert('html' in t && 'css' in t && 'js' in t && 'name' in t && 'explanation' in t,
+    '"' + k + '" tiene html, css, js, name, explanation');
+  assert(typeof t.html === 'string' && typeof t.css === 'string' && typeof t.js === 'string' && typeof t.explanation === 'string',
+    '"' + k + '": html/css/js/explanation son strings');
 });
+
+// Orden: Ejemplos HTML (n5-html-headings) están antes que ejemplos CSS (n1-selector-basic)
+var idxHTML = keys.indexOf('n5-html-headings');
+var idxCSS = keys.indexOf('n1-selector-basic');
+assert(idxHTML !== -1 && idxCSS !== -1 && idxHTML < idxCSS, 'Ejemplos HTML (n5-html-headings) ordenados antes que ejemplos CSS (n1-selector-basic)');
 
 // Verificar los 13 niveles están presentes
 ['n1-','n2-','n3-','n4-','n5-','n6-','n7-','n8-','n9-','n10-','n11-','n12-','n13-'].forEach(function(prefix) {
@@ -381,6 +386,14 @@ var alertMsg = null;
 sandbox.alert = function(m) { alertMsg = m; };
 Exporter.importFile({ size: 11 * 1024 * 1024, name: 'test.html' }, function() {});
 assert(alertMsg !== null, 'importFile rechaza archivos >10MB con alerta');
+
+alertMsg = null;
+Exporter.importFile({ size: 100, name: 'test.txt' }, function() {});
+assert(alertMsg !== null && alertMsg.indexOf('no permitido') !== -1, 'importFile rechaza archivos .txt');
+
+alertMsg = null;
+Exporter.importFile({ size: 100, name: 'test.png' }, function() {});
+assert(alertMsg !== null && alertMsg.indexOf('no permitido') !== -1, 'importFile rechaza archivos .png');
 
 var cErr = false;
 try { Exporter.importFile(null, function() {}); } catch(e) { cErr = true; }

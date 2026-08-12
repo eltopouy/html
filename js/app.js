@@ -18,10 +18,87 @@
   var codeRunner = null;
   var codeSimulator = null;
 
+  var currentFilenames = {
+    html: 'index.html',
+    css: 'styles.css',
+    js: 'script.js'
+  };
+
+  function updateTabLabels() {
+    var htmlLabel = document.getElementById('tab-label-html');
+    var cssLabel = document.getElementById('tab-label-css');
+    var jsLabel = document.getElementById('tab-label-js');
+    if (htmlLabel) htmlLabel.textContent = currentFilenames.html;
+    if (cssLabel) cssLabel.textContent = currentFilenames.css;
+    if (jsLabel) jsLabel.textContent = currentFilenames.js;
+  }
+
   // ---- Utility ----
+
+  function showToast(message, type) {
+    type = type || 'info';
+    var container = document.getElementById('toast-container');
+    if (!container) return;
+
+    var toast = document.createElement('div');
+    toast.className = 'toast ' + type;
+    toast.innerHTML = '<span>' + escapeHTML(message) + '</span>';
+
+    container.appendChild(toast);
+
+    setTimeout(function () {
+      toast.classList.add('toast-out');
+      setTimeout(function () {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 220);
+    }, 2800);
+  }
+
+  function updateTabCodeDots(codeObj) {
+    if (!codeObj) return;
+    var dotHtml = document.getElementById('dot-html');
+    var dotCss = document.getElementById('dot-css');
+    var dotJs = document.getElementById('dot-js');
+
+    if (dotHtml) dotHtml.classList.toggle('has-code', !!(codeObj.html && codeObj.html.trim().length > 0));
+    if (dotCss) dotCss.classList.toggle('has-code', !!(codeObj.css && codeObj.css.trim().length > 0));
+    if (dotJs) dotJs.classList.toggle('has-code', !!(codeObj.js && codeObj.js.trim().length > 0));
+  }
 
   function escapeHTML(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function findCodeLine(htmlCode, elData) {
+    if (!htmlCode || !elData) return -1;
+    var lines = htmlCode.split('\n');
+    var tag = (elData.tagName || '').toLowerCase();
+    var id = elData.id || '';
+    var cls = (elData.className || '').trim().split(/\s+/)[0] || '';
+    var text = (elData.textContent || '').trim();
+
+    if (id) {
+      for (var i = 0; i < lines.length; i++) {
+        if (lines[i].indexOf('id="' + id + '"') !== -1 || lines[i].indexOf("id='" + id + "'") !== -1) return i;
+      }
+    }
+    if (cls) {
+      for (var j = 0; j < lines.length; j++) {
+        if (lines[j].indexOf(cls) !== -1) return j;
+      }
+    }
+    if (tag && text) {
+      var shortText = text.substring(0, 15);
+      for (var k = 0; k < lines.length; k++) {
+        if (lines[k].toLowerCase().indexOf('<' + tag) !== -1 && lines[k].indexOf(shortText) !== -1) return k;
+      }
+    }
+    if (tag) {
+      for (var m = 0; m < lines.length; m++) {
+        if (lines[m].toLowerCase().indexOf('<' + tag) !== -1) return m;
+      }
+    }
+    return -1;
   }
 
   function saveCodeToLocalStorage(code) {
@@ -53,9 +130,15 @@
   function clearConsole() {
     consoleLogs = [];
     errorCount = 0;
-    consoleOutputEl.innerHTML = '';
-    consoleBadgeEl.textContent = '0 mensajes';
-    consoleBadgeEl.classList.remove('has-error');
+    if (consoleOutputEl) consoleOutputEl.innerHTML = '';
+    if (consoleBadgeEl) {
+      consoleBadgeEl.textContent = '0 mensajes';
+      consoleBadgeEl.classList.remove('has-error');
+    }
+    var consolePane = document.getElementById('console-pane') || document.querySelector('.console-pane');
+    if (consolePane) {
+      consolePane.classList.add('collapsed');
+    }
   }
 
   function handleConsoleLog(logData) {
@@ -70,10 +153,12 @@
     consoleLogs.push({ level: level, timestamp: timestamp, text: text });
     if (level === 'error') {
       errorCount++;
-      consoleBadgeEl.classList.add('has-error');
+      if (consoleBadgeEl) consoleBadgeEl.classList.add('has-error');
     }
 
-    consoleBadgeEl.textContent = consoleLogs.length + ' mensajes';
+    if (consoleBadgeEl) {
+      consoleBadgeEl.textContent = consoleLogs.length === 1 ? '1 mensaje' : consoleLogs.length + ' mensajes';
+    }
 
     var line = document.createElement('div');
     line.className = 'console-log-line ' + level;
@@ -82,13 +167,20 @@
       '<span class="level-badge">' + level.toUpperCase() + '</span> ' +
       '<span class="message">' + text + '</span>';
 
-    // Cap DOM nodes to max 200 to prevent browser lag during heavy logging
-    if (consoleOutputEl.children.length >= 200) {
-      consoleOutputEl.removeChild(consoleOutputEl.firstChild);
+    if (consoleOutputEl) {
+      // Cap DOM nodes to max 200 to prevent browser lag during heavy logging
+      if (consoleOutputEl.children.length >= 200) {
+        consoleOutputEl.removeChild(consoleOutputEl.firstChild);
+      }
+      consoleOutputEl.appendChild(line);
+      consoleOutputEl.scrollTop = consoleOutputEl.scrollHeight;
     }
 
-    consoleOutputEl.appendChild(line);
-    consoleOutputEl.scrollTop = consoleOutputEl.scrollHeight;
+    // Auto-expand console view when JS messages are output
+    var consolePane = document.getElementById('console-pane') || document.querySelector('.console-pane');
+    if (consolePane) {
+      consolePane.classList.remove('collapsed');
+    }
   }
 
   // ---- Lucide Icon Element Helper ----
@@ -133,9 +225,9 @@
     }
   }
 
-  // ---- Browser Tab Title Updater ----
+  // ---- Browser Tab Title & Address Bar Updater ----
 
-  function updateBrowserTab(htmlCode) {
+  function updateBrowserTab(htmlCode, activeTab) {
     var tabTitleEl = document.getElementById('browser-tab-title');
     var urlTextEl = document.getElementById('browser-url-text');
     if (!tabTitleEl) return;
@@ -151,9 +243,13 @@
 
     tabTitleEl.textContent = pageTitle;
 
-    // Update the simulated URL bar
+    // Determine current active tab and corresponding file name
+    var currentTab = activeTab || (codeEditor ? codeEditor.currentTab : 'html') || 'html';
+    var fileName = currentFilenames[currentTab] || (currentTab === 'css' ? 'styles.css' : (currentTab === 'js' ? 'script.js' : 'index.html'));
+
+    // Update the simulated URL bar with the active file path
     if (urlTextEl) {
-      urlTextEl.textContent = 'https://html.servicioti.com.uy';
+      urlTextEl.textContent = 'https://html.servicioti.com.uy/' + fileName;
     }
   }
 
@@ -161,9 +257,16 @@
 
   function onCodeChange(code) {
     saveCodeToLocalStorage(code);
-    updateBrowserTab(code.html);
+    updateBrowserTab(code.html, codeEditor ? codeEditor.currentTab : 'html');
+    updateTabCodeDots(code);
+
+    var statusPill = document.getElementById('preview-status-pill');
+    var statusText = document.getElementById('preview-status-text');
 
     if (autoRun) {
+      if (statusPill) statusPill.className = 'preview-status-pill updating';
+      if (statusText) statusText.textContent = 'Actualizando...';
+
       clearTimeout(autoRunTimeout);
       autoRunTimeout = setTimeout(function () {
         // Do not wipe console output if simulator is actively running
@@ -171,11 +274,28 @@
           clearConsole();
         }
         codeRunner.run(code);
+        if (statusPill) statusPill.className = 'preview-status-pill live';
+        if (statusText) statusText.textContent = 'En vivo';
       }, 500);
     }
   }
 
   // ---- Template Selector ----
+
+  function updateExplanation(templateKey) {
+    var template = TEMPLATES[templateKey];
+    var titleEl = document.getElementById('explanation-title');
+    var bodyEl = document.getElementById('explanation-body');
+    if (!titleEl || !bodyEl) return;
+
+    if (template) {
+      titleEl.textContent = 'Explicación: ' + (template.name || 'Ejemplo');
+      bodyEl.textContent = template.explanation || 'Selecciona un ejemplo pedagógico para ver la explicación didáctica de la etiqueta o concepto CSS.';
+    } else {
+      titleEl.textContent = 'Explicación Pedagógica';
+      bodyEl.textContent = 'Selecciona un ejemplo pedagógico para ver la explicación didáctica de la etiqueta o concepto CSS.';
+    }
+  }
 
   function populateTemplateSelector() {
     var selector = document.getElementById('template-select');
@@ -285,6 +405,11 @@
         for (var j = 0; j < tabBtns.length; j++) tabBtns[j].classList.remove('active');
         this.classList.add('active');
         codeEditor.switchTab(tab);
+        var currentCode = codeEditor ? codeEditor.getCode() : { html: '' };
+        updateBrowserTab(currentCode.html, tab);
+        
+        var tabInfoEl = document.getElementById('editor-tab-info');
+        if (tabInfoEl) tabInfoEl.textContent = tab.toUpperCase();
       });
     }
 
@@ -292,6 +417,7 @@
     document.getElementById('btn-run').addEventListener('click', function () {
       clearConsole();
       codeRunner.run(codeEditor.getCode());
+      showToast('Código ejecutado correctamente', 'info');
     });
 
     // Auto-run toggle
@@ -299,6 +425,34 @@
     if (autoRunToggle) {
       autoRunToggle.addEventListener('change', function () {
         autoRun = this.checked;
+        showToast(autoRun ? 'Ejecución automática activada' : 'Ejecución automática pausada', 'info');
+      });
+    }
+
+    // Toggle Explanation Panel
+    var btnToggleExplanation = document.getElementById('btn-toggle-explanation');
+    var explanationPanel = document.getElementById('explanation-panel');
+    var btnCloseExplanation = document.getElementById('btn-close-explanation');
+
+    if (btnToggleExplanation && explanationPanel) {
+      btnToggleExplanation.addEventListener('click', function () {
+        var isHidden = explanationPanel.classList.contains('hidden');
+        if (isHidden) {
+          explanationPanel.classList.remove('hidden');
+          btnToggleExplanation.classList.add('active');
+        } else {
+          explanationPanel.classList.add('hidden');
+          btnToggleExplanation.classList.remove('active');
+        }
+      });
+    }
+
+    if (btnCloseExplanation && explanationPanel) {
+      btnCloseExplanation.addEventListener('click', function () {
+        explanationPanel.classList.add('hidden');
+        if (btnToggleExplanation) {
+          btnToggleExplanation.classList.remove('active');
+        }
       });
     }
 
@@ -306,7 +460,12 @@
     document.getElementById('template-select').addEventListener('change', function () {
       var templateKey = this.value;
       var template = TEMPLATES[templateKey];
+      updateExplanation(templateKey);
+
       if (template) {
+        currentFilenames = { html: 'index.html', css: 'styles.css', js: 'script.js' };
+        updateTabLabels();
+
         // Determine primary didactic tab (css vs html vs js)
         var targetTab = 'html';
         if (template.css && !template.html) {
@@ -327,46 +486,232 @@
         codeEditor.switchTab(targetTab);
 
         codeEditor.setCode(template);
-        updateBrowserTab(template.html);
+        updateBrowserTab(template.html, targetTab);
+        updateTabCodeDots(template);
         clearConsole();
         codeRunner.run(template);
 
         if (codeSimulator) {
           codeSimulator.loadTarget(template, targetTab);
         }
+
+        showToast('Ejemplo "' + (template.name || templateKey) + '" cargado', 'info');
       }
     });
 
     // Format Code
     document.getElementById('btn-format').addEventListener('click', function () {
       codeEditor.formatCode();
+      showToast('Código formateado correctamente', 'success');
     });
+
+    // Copy Active Tab Code Button
+    var btnCopyCode = document.getElementById('btn-copy-code');
+    if (btnCopyCode) {
+      btnCopyCode.addEventListener('click', function () {
+        var currentTab = codeEditor.getActiveTab ? codeEditor.getActiveTab() : codeEditor.currentTab;
+        var codeObj = codeEditor.getCode();
+        var textToCopy = codeObj[currentTab] || '';
+        navigator.clipboard.writeText(textToCopy).then(function () {
+          var copyTextSpan = document.getElementById('copy-btn-text');
+          if (copyTextSpan) {
+            copyTextSpan.textContent = '¡Copiado!';
+            setTimeout(function () {
+              copyTextSpan.textContent = 'Copiar';
+            }, 1800);
+          }
+          showToast('Código (' + currentTab.toUpperCase() + ') copiado al portapapeles', 'success');
+        }).catch(function (err) {
+          console.error('Error al copiar código: ', err);
+        });
+      });
+    }
+
+    // Export Dropdown Menu Toggle
+    var btnExportDropdown = document.getElementById('btn-export-dropdown');
+    var dropdownWrapper = btnExportDropdown ? btnExportDropdown.closest('.dropdown-wrapper') : null;
+    if (btnExportDropdown && dropdownWrapper) {
+      btnExportDropdown.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropdownWrapper.classList.toggle('open');
+      });
+      document.addEventListener('click', function (e) {
+        if (!dropdownWrapper.contains(e.target)) {
+          dropdownWrapper.classList.remove('open');
+        }
+      });
+    }
+
+    // Reload Preview Button
+    var btnReloadPreview = document.getElementById('btn-reload-preview');
+    if (btnReloadPreview) {
+      btnReloadPreview.addEventListener('click', function () {
+        codeRunner.run(codeEditor.getCode());
+        showToast('Vista previa recargada', 'info');
+      });
+    }
 
     // Export ZIP
     document.getElementById('btn-export-zip').addEventListener('click', function () {
+      if (dropdownWrapper) dropdownWrapper.classList.remove('open');
       Exporter.downloadZip(codeEditor.getCode());
+      showToast('Descargando proyecto .ZIP...', 'info');
     });
 
     // Export HTML
     document.getElementById('btn-export-html').addEventListener('click', function () {
+      if (dropdownWrapper) dropdownWrapper.classList.remove('open');
       Exporter.downloadSingleHTML(codeEditor.getCode());
+      showToast('Descargando archivo .HTML...', 'info');
     });
 
-    // Reset
+    // Share Link Export
+    var btnExportShare = document.getElementById('btn-export-share');
+    if (btnExportShare) {
+      btnExportShare.addEventListener('click', function () {
+        if (dropdownWrapper) dropdownWrapper.classList.remove('open');
+        var shareUrl = ShareLink.generateShareUrl(codeEditor.getCode());
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(shareUrl).then(function () {
+            showToast('Enlace de proyecto copiado al portapapeles. ¡Listo para compartir!', 'success');
+          }).catch(function () {
+            showToast('Enlace generado en la barra de direcciones', 'info');
+          });
+        } else {
+          showToast('Enlace generado. Copia la dirección URL', 'info');
+        }
+      });
+    }
+
+    // Export Full Repository ZIP for GitHub update
+    var btnExportRepo = document.getElementById('btn-export-repo');
+    if (btnExportRepo) {
+      btnExportRepo.addEventListener('click', function () {
+        if (dropdownWrapper) dropdownWrapper.classList.remove('open');
+        Exporter.downloadRepoZip();
+        showToast('Descargando repositorio completo .ZIP...', 'info');
+      });
+    }
+
+    // Element Inspector Mode Toggle
+    var btnInspectElement = document.getElementById('btn-inspect-element');
+    if (btnInspectElement) {
+      btnInspectElement.addEventListener('click', function () {
+        var isActive = this.classList.toggle('active');
+        codeRunner.setInspectorMode(isActive);
+        if (isActive) {
+          showToast('🔍 Modo inspeccionar activo: Haz clic en un elemento de la vista previa', 'info');
+        } else {
+          showToast('Modo inspeccionar desactivado', 'info');
+        }
+      });
+    }
+
+    // Resources Gallery Modal
+    var resourcesModal = document.getElementById('resources-modal');
+    var btnResources = document.getElementById('btn-resources');
+    var btnResourcesClose = document.getElementById('btn-resources-close');
+    var btnResourcesCloseX = document.getElementById('btn-resources-close-x');
+
+    if (btnResources && resourcesModal) {
+      btnResources.addEventListener('click', function () {
+        resourcesModal.classList.add('show');
+      });
+    }
+    var closeResModal = function () {
+      if (resourcesModal) resourcesModal.classList.remove('show');
+    };
+    if (btnResourcesClose) btnResourcesClose.addEventListener('click', closeResModal);
+    if (btnResourcesCloseX) btnResourcesCloseX.addEventListener('click', closeResModal);
+    if (resourcesModal) {
+      resourcesModal.addEventListener('click', function (e) {
+        if (e.target === resourcesModal) closeResModal();
+      });
+    }
+
+    // Resources tab switcher
+    var resTabBtns = document.querySelectorAll('.res-tab-btn');
+    resTabBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        resTabBtns.forEach(function (b) { b.classList.remove('active'); });
+        this.classList.add('active');
+
+        var targetTab = this.getAttribute('data-res-tab');
+        document.querySelectorAll('.res-tab-content').forEach(function (c) {
+          c.style.display = 'none';
+          c.classList.remove('active');
+        });
+        var activeContent = document.getElementById('res-tab-' + targetTab);
+        if (activeContent) {
+          activeContent.style.display = 'block';
+          activeContent.classList.add('active');
+        }
+      });
+    });
+
+    // Insert resource snippet buttons
+    document.querySelectorAll('.btn-insert-res').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var snippet = this.getAttribute('data-snippet');
+        if (snippet && codeEditor) {
+          codeEditor.switchTab('html');
+          if (codeEditor.editor) {
+            var doc = codeEditor.editor.getDoc ? codeEditor.editor.getDoc() : codeEditor.editor;
+            var cursor = doc.getCursor ? doc.getCursor() : { line: doc.lineCount ? doc.lineCount() : 0, ch: 0 };
+            doc.replaceRange('\n' + snippet + '\n', cursor);
+          }
+          closeResModal();
+          showToast('Recurso insertado en el código HTML', 'success');
+        }
+      });
+    });
+
+    // Shortcuts Modal
+    var shortcutsModal = document.getElementById('shortcuts-modal');
+    var btnShortcutsTrigger = document.getElementById('btn-shortcuts-trigger');
+    var btnShortcutsClose = document.getElementById('btn-shortcuts-close');
+
+    if (btnShortcutsTrigger && shortcutsModal) {
+      btnShortcutsTrigger.addEventListener('click', function () {
+        shortcutsModal.classList.add('show');
+      });
+    }
+    if (btnShortcutsClose && shortcutsModal) {
+      btnShortcutsClose.addEventListener('click', function () {
+        shortcutsModal.classList.remove('show');
+      });
+    }
+    if (shortcutsModal) {
+      shortcutsModal.addEventListener('click', function (e) {
+        if (e.target === shortcutsModal) shortcutsModal.classList.remove('show');
+      });
+    }
+
+    // Reset Modal
+    var resetModal = document.getElementById('reset-modal');
     document.getElementById('btn-reset').addEventListener('click', function () {
-      document.getElementById('reset-modal').classList.add('show');
+      if (resetModal) resetModal.classList.add('show');
     });
     document.getElementById('btn-modal-cancel').addEventListener('click', function () {
-      document.getElementById('reset-modal').classList.remove('show');
+      if (resetModal) resetModal.classList.remove('show');
     });
+    if (resetModal) {
+      resetModal.addEventListener('click', function (e) {
+        if (e.target === resetModal) resetModal.classList.remove('show');
+      });
+    }
     document.getElementById('btn-modal-confirm').addEventListener('click', function () {
-      document.getElementById('reset-modal').classList.remove('show');
+      if (resetModal) resetModal.classList.remove('show');
+      currentFilenames = { html: 'index.html', css: 'styles.css', js: 'script.js' };
+      updateTabLabels();
       var currentTemplate = document.getElementById('template-select').value;
       var template = TEMPLATES[currentTemplate] || TEMPLATES['blank'];
       codeEditor.setCode(template);
-      updateBrowserTab(template.html);
+      updateBrowserTab(template.html, 'html');
+      updateTabCodeDots(template);
       clearConsole();
       codeRunner.run(template);
+      showToast('Código restablecido a la plantilla inicial', 'info');
     });
 
     // Console clear & toggle
@@ -405,6 +750,10 @@
       var file = this.files[0];
       if (file) {
         Exporter.importFile(file, function (result) {
+          if (result.filename) {
+            currentFilenames[result.type] = result.filename;
+            updateTabLabels();
+          }
           var obj = {};
           obj[result.type] = result.content;
           codeEditor.setCode(obj);
@@ -417,6 +766,8 @@
               allTabs[t].classList.remove('active');
             }
           }
+          var currentCode = codeEditor ? codeEditor.getCode() : { html: '' };
+          updateBrowserTab(currentCode.html, result.type);
         });
       }
     });
@@ -440,6 +791,17 @@
         if (codeEditor) codeEditor.resize();
       }, 150);
     });
+
+    // Simulated Browser Nav Buttons (Reload)
+    var browserReloadBtn = document.querySelector('.browser-nav-btn[title="Recargar"]');
+    if (browserReloadBtn) {
+      browserReloadBtn.addEventListener('click', function () {
+        clearConsole();
+        if (codeRunner && codeEditor) {
+          codeRunner.run(codeEditor.getCode());
+        }
+      });
+    }
 
     // Global Keyboard Shortcuts (Ctrl+Enter / Cmd+Enter)
     document.addEventListener('keydown', function (e) {
@@ -513,12 +875,23 @@
       btnSimSettings.addEventListener('click', function () {
         simSettingsModal.classList.add('show');
       });
+      simSettingsModal.addEventListener('click', function (e) {
+        if (e.target === simSettingsModal) simSettingsModal.classList.remove('show');
+      });
     }
     if (btnSimSettingsClose && simSettingsModal) {
       btnSimSettingsClose.addEventListener('click', function () {
         simSettingsModal.classList.remove('show');
       });
     }
+
+    // Global ESC key listener to close modals
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        if (resetModal && resetModal.classList.contains('show')) resetModal.classList.remove('show');
+        if (simSettingsModal && simSettingsModal.classList.contains('show')) simSettingsModal.classList.remove('show');
+      }
+    });
 
     var simSpeedSlider = document.getElementById('sim-speed-slider');
     var simSpeedVal = document.getElementById('sim-speed-val');
@@ -558,8 +931,38 @@
     codeRunner = new CodeRunner(previewIframe, handleConsoleLog);
     codeRunner.onConsoleClear = clearConsole;
 
-    // 3. Load saved code or default template
-    var savedCode = loadSavedCode() || TEMPLATES['blank'];
+    // Element Inspected callback
+    codeRunner.onElementInspected = function (data) {
+      var btnInspect = document.getElementById('btn-inspect-element');
+      if (btnInspect) btnInspect.classList.remove('active');
+
+      if (!codeEditor || !data) return;
+      var code = codeEditor.getCode();
+      var lineNo = findCodeLine(code.html, data);
+      if (lineNo !== -1) {
+        codeEditor.switchTab('html');
+        if (codeEditor.editor && codeEditor.editor.setCursor) {
+          codeEditor.editor.setCursor({ line: lineNo, ch: 0 });
+          if (codeEditor.editor.focus) codeEditor.editor.focus();
+        }
+        showToast('Elemento <' + (data.tagName || '').toLowerCase() + '> en línea ' + (lineNo + 1), 'success');
+      } else {
+        showToast('Elemento <' + (data.tagName || '').toLowerCase() + '> inspeccionado', 'info');
+      }
+    };
+
+    // 3. Load saved code, shared link, or default template
+    var savedCode = loadSavedCode();
+    if (window.location.hash && window.location.hash.indexOf('#code=') === 0 && typeof ShareLink !== 'undefined') {
+      var sharedCode = ShareLink.decode(window.location.hash);
+      if (sharedCode && (sharedCode.html || sharedCode.css || sharedCode.js)) {
+        savedCode = sharedCode;
+        setTimeout(function () {
+          showToast('Proyecto cargado desde enlace compartido', 'success');
+        }, 500);
+      }
+    }
+    if (!savedCode) savedCode = TEMPLATES['blank'];
 
     // 4. Init editor
     codeEditor = new CodeEditor(editorContainer, onCodeChange);
@@ -569,28 +972,64 @@
       js: savedCode.js
     });
 
+    codeEditor.onCursorChange = function (pos) {
+      var posEl = document.getElementById('editor-pos-info');
+      if (posEl) posEl.textContent = 'Lín ' + pos.line + ', Col ' + pos.ch;
+    };
+
+    codeEditor.onSaveRequest = function () {
+      saveCodeToLocalStorage(codeEditor.getCode());
+      showToast('Proyecto guardado en el navegador', 'success');
+    };
+
+    updateTabCodeDots(savedCode);
+
     // 5. Init Simulator Learning Engine
     codeSimulator = new CodeSimulator(codeEditor, codeRunner, {
       onProgress: handleSimulatorProgress
     });
 
-    var initialTarget = (savedCode && (savedCode.html || savedCode.css || savedCode.js)) ? savedCode : TEMPLATES['n1-selector-basic'];
-    var initialTab = (initialTarget.css && !initialTarget.html) ? 'css' : ((initialTarget.js && !initialTarget.html && !initialTarget.css) ? 'js' : 'html');
+    var initialTarget = (savedCode && (savedCode.html || savedCode.css || savedCode.js)) ? savedCode : TEMPLATES['blank'];
+    var initialTab = 'html';
     codeSimulator.loadTarget(initialTarget, initialTab);
 
-    // 6. Initial run
+    // 6. Force focus on index.html tab for immediate user typing
+    codeEditor.switchTab('html');
+
+    // 7. Initial run
     codeRunner.run(codeEditor.getCode());
 
-    // 7. Update browser tab with initial title
-    updateBrowserTab(savedCode.html);
+    // 8. Update browser tab with initial title and URL
+    updateBrowserTab(savedCode.html, 'html');
 
-    // 8. Bind events
+    // 9. Bind events
     bindEvents();
 
-    // 9. Render Lucide Icons
+    var initialTemplateSel = document.getElementById('template-select');
+    if (initialTemplateSel) {
+      updateExplanation(initialTemplateSel.value || 'blank');
+    }
+
+    // 10. Render Lucide Icons
     if (window.lucide) {
       window.lucide.createIcons();
     }
+
+    // 11. Focus CodeMirror editor cursor inside index.html
+    setTimeout(function () {
+      if (codeEditor) {
+        codeEditor.switchTab('html');
+        if (codeEditor.editor) {
+          codeEditor.editor.focus();
+          var doc = codeEditor.editor.getDoc();
+          if (doc) {
+            var lastLine = doc.lastLine();
+            var lastCh = doc.getLine(lastLine) ? doc.getLine(lastLine).length : 0;
+            doc.setCursor({ line: lastLine, ch: lastCh });
+          }
+        }
+      }
+    }, 100);
   }
 
   // Start when DOM is ready

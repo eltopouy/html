@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduCode Studio | Respaldo de Código Fuente en Google Drive</title>
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- JSZip for Zip bundling -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --accent-blue: #38bdf8;
+      --accent-green: #4ade80;
+      --accent-purple: #c084fc;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --border-color: #475569;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 680px;
+      padding: 32px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 20px;
+    }
+
+    .header-icon {
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--accent-blue);
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 4px 0;
+      font-weight: 700;
+    }
+
+    p.subtitle {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .file-summary {
+      background: var(--bg-tertiary);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .file-summary h3 {
+      margin: 0 0 10px 0;
+      font-size: 0.95rem;
+      color: var(--accent-blue);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .file-list {
+      max-height: 180px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding-right: 8px;
+    }
+
+    .file-item {
+      background: rgba(15, 23, 42, 0.6);
+      padding: 4px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .log-box {
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 16px;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      min-height: 120px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 24px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .btn {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: #1d4ed8;
+    }
+
+    .btn:disabled {
+      background: #475569;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .btn-green {
+      background: #16a34a;
+    }
+
+    .btn-green:hover {
+      background: #15803d;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="header">
+      <div class="header-icon">
+        <i data-lucide="hard-drive" style="width:28px; height:28px;"></i>
+      </div>
+      <div>
+        <h1>Respaldo de EduCode Studio</h1>
+        <p class="subtitle">Guarda el código fuente del proyecto en tu carpeta <strong>htmlEduCodeStudio</strong> de Google Drive</p>
+      </div>
+    </div>
+
+    <div class="file-summary">
+      <h3>
+        <span>Código Fuente del Proyecto</span>
+        <span id="file-count" style="font-weight: normal; font-size: 0.85rem;">Cargando archivos...</span>
+      </h3>
+      <div id="file-list" class="file-list"></div>
+    </div>
+
+    <div id="log-box" class="log-box">Listo para iniciar respaldo en la carpeta "htmlEduCodeStudio"...</div>
+
+    <button id="btn-download-pc" class="btn btn-green" style="margin-bottom: 12px; display: inline-flex;">
+      <i data-lucide="download"></i>
+      <span>Descargar Paquete ZIP a mi Computadora (Escritorio)</span>
+    </button>
+
+    <button id="btn-backup" class="btn" disabled>
+      <i data-lucide="cloud-upload"></i>
+      <span>Iniciar Respaldo en Google Drive</span>
+    </button>
+
+    <a id="btn-drive-folder" href="#" target="_blank" class="btn btn-green hidden" style="margin-top: 12px; text-decoration: none;">
+      <i data-lucide="external-link"></i>
+      <span>Abrir Carpeta "htmlEduCodeStudio" en Drive</span>
+    </a>
+  </div>
+
+  <script>
+    var projectFiles = [];
+    var logBox = document.getElementById('log-box');
+    var btnBackup = document.getElementById('btn-backup');
+    var btnDriveFolder = document.getElementById('btn-drive-folder');
+    var fileCountEl = document.getElementById('file-count');
+    var fileListEl = document.getElementById('file-list');
+
+    function log(msg, color) {
+      var time = new Date().toLocaleTimeString();
+      var line = '[' + time + '] ' + msg;
+      logBox.innerText += (logBox.innerText ? '\n' : '') + line;
+      logBox.scrollTop = logBox.scrollHeight;
+      if (color) logBox.style.color = color;
+    }
+
+    var btnDownloadPc = document.getElementById('btn-download-pc');
+    if (btnDownloadPc) {
+      btnDownloadPc.addEventListener('click', function() {
+        log('Generando archivo ZIP comprimido de alta compatibilidad...');
+        if (!projectFiles || projectFiles.length === 0) {
+          log('❌ Espera a que se cargue la lista de archivos.', '#f87171');
+          return;
+        }
+
+        var zip = new JSZip();
+        projectFiles.forEach(function(f) {
+          zip.file(f.path, f.content);
+        });
+
+        zip.generateAsync({
+          type: 'blob',
+          compression: 'DEFLATE',
+          compressionOptions: { level: 6 }
+        }).then(function(blob) {
+          var url = window.URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = 'educode-studio-v3.0.0-repo.zip';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function() {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          }, 300);
+          log('✓ Paquete educode-studio-v3.0.0-repo.zip descargado en tu equipo.', '#4ade80');
+        }).catch(function(err) {
+          log('❌ Error comprimiendo ZIP: ' + err.message, '#f87171');
+        });
+      });
+    }
+    fetch('/api/source-files')
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success && data.files) {
+          projectFiles = data.files;
+          fileCountEl.textContent = data.count + ' archivos detectados';
+          fileListEl.innerHTML = '';
+          projectFiles.forEach(function(f) {
+            var div = document.createElement('div');
+            div.className = 'file-item';
+            div.textContent = '📄 ' + f.path;
+            fileListEl.appendChild(div);
+          });
+          btnBackup.disabled = false;
+          log('Cargados ' + data.count + ' archivos del repositorio. Haz clic para iniciar el respaldo.');
+        } else {
+          log('Error al cargar la lista de archivos: ' + data.error, '#f87171');
+        }
+      })
+      .catch(function(err) {
+        log('Error de red al consultar archivos: ' + err.message, '#f87171');
+      });
+
+    btnBackup.addEventListener('click', function() {
+      btnBackup.disabled = true;
+      log('Iniciando proceso de autenticación de Google Drive...');
+
+      fetch('/firebase-applet-config.json')
+        .then(function(r) { return r.json(); })
+        .then(function(config) {
+          var clientId = config.oAuthClientId;
+          if (!clientId) {
+            log('Error: No se encontró oAuthClientId en firebase-applet-config.json', '#f87171');
+            btnBackup.disabled = false;
+            return;
+          }
+
+          if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+            log('Error: Librería de Google Identity Services no cargada.', '#f87171');
+            btnBackup.disabled = false;
+            return;
+          }
+
+          var tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: clientId,
+            scope: 'https://www.googleapis.com/auth/drive.file',
+            callback: function(response) {
+              if (response.error) {
+                log('Error de autorización: ' + (response.error_description || response.error), '#f87171');
+                btnBackup.disabled = false;
+                return;
+              }
+              log('Autorización concedida exitosamente.', '#4ade80');
+              startUpload(response.access_token);
+            }
+          });
+
+          tokenClient.requestAccessToken({ prompt: '' });
+        })
+        .catch(function(err) {
+          log('Error al leer configuración OAuth: ' + err.message, '#f87171');
+          btnBackup.disabled = false;
+        });
+    });
+
+    function startUpload(accessToken) {
+      log('Buscando o creando carpeta "htmlEduCodeStudio" en Google Drive...');
+
+      var query = encodeURIComponent("name = 'htmlEduCodeStudio' and mimeType = 'application/vnd.google-apps.folder' and trashed = false");
+      fetch('https://www.googleapis.com/drive/v3/files?q=' + query, {
+        headers: { 'Authorization': 'Bearer ' + accessToken }
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.files && data.files.length > 0) {
+            log('Carpeta "htmlEduCodeStudio" encontrada (ID: ' + data.files[0].id + ')');
+            return data.files[0].id;
+          } else {
+            log('Creando nueva carpeta "htmlEduCodeStudio"...');
+            return fetch('https://www.googleapis.com/drive/v3/files', {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Bearer ' + accessToken,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                name: 'htmlEduCodeStudio',
+                mimeType: 'application/vnd.google-apps.folder'
+              })
+            })
+              .then(function(r) { return r.json(); })
+              .then(function(folder) {
+                log('Carpeta "htmlEduCodeStudio" creada exitosamente.');
+                return folder.id;
+              });
+          }
+        })
+        .then(function(folderId) {
+          log('Generando archivo ZIP comprimido del código fuente...');
+
+          var zip = new JSZip();
+          projectFiles.forEach(function(f) {
+            zip.file(f.path, f.content);
+          });
+
+          return zip.generateAsync({ type: 'blob' }).then(function(zipBlob) {
+            log('Archivo ZIP generado. Subiendo "EduCodeStudio-SourceCode-v3.0.0.zip"...');
+
+            var metadata = {
+              name: 'EduCodeStudio-SourceCode-v3.0.0.zip',
+              parents: [folderId],
+              mimeType: 'application/zip'
+            };
+
+            var formData = new FormData();
+            formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            formData.append('file', zipBlob);
+
+            return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + accessToken },
+              body: formData
+            })
+              .then(function(r) { return r.json(); })
+              .then(function() {
+                log('ZIP de código fuente subido a Drive.', '#4ade80');
+                return folderId;
+              });
+          });
+        })
+        .then(function(folderId) {
+          log('Subiendo archivos individuales del código fuente...');
+
+          var uploadPromises = projectFiles.map(function(f) {
+            // Flatten filename for flat drive upload
+            var flatName = f.path.replace(/\//g, '_');
+            var metadata = {
+              name: flatName,
+              parents: [folderId],
+              mimeType: f.mime || 'text/plain'
+            };
+
+            var formData = new FormData();
+            formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            formData.append('file', new Blob([f.content], { type: f.mime }));
+
+            return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + accessToken },
+              body: formData
+            })
+              .then(function(r) { return r.json(); })
+              .then(function() {
+                log('✓ Subido: ' + f.path);
+              });
+          });
+
+          return Promise.all(uploadPromises).then(function() {
+            return folderId;
+          });
+        })
+        .then(function(folderId) {
+          var folderUrl = 'https://drive.google.com/drive/folders/' + folderId;
+          log('\n🎉 ¡RESPALDO COMPLETADO CON ÉXITO!', '#4ade80');
+          log('Todos los archivos y el paquete ZIP del proyecto están guardados en tu Google Drive.');
+
+          btnDriveFolder.href = folderUrl;
+          btnDriveFolder.classList.remove('hidden');
+          btnBackup.classList.add('hidden');
+        })
+        .catch(function(err) {
+          log('\n❌ Error durante el respaldo: ' + (err.message || err), '#f87171');
+          btnBackup.disabled = false;
+        });
+    }
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>

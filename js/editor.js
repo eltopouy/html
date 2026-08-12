@@ -54,6 +54,12 @@ var CodeEditor = (function () {
         'Cmd-Enter': function () {
           var btnRun = document.getElementById('btn-run');
           if (btnRun) btnRun.click();
+        },
+        'Ctrl-S': function (cm) {
+          if (self.onSaveRequest) self.onSaveRequest();
+        },
+        'Cmd-S': function (cm) {
+          if (self.onSaveRequest) self.onSaveRequest();
         }
       }
     });
@@ -64,6 +70,14 @@ var CodeEditor = (function () {
     this.editor.on('change', function () {
       if (self.onCodeChange) {
         self.onCodeChange(self.getCode());
+      }
+    });
+
+    // Fire callback on cursor movement
+    this.editor.on('cursorActivity', function () {
+      if (self.onCursorChange) {
+        var cur = self.editor.getCursor();
+        self.onCursorChange({ line: cur.line + 1, ch: cur.ch + 1 });
       }
     });
 
