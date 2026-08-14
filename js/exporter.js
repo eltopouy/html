@@ -11,8 +11,8 @@ var Exporter = {
     var js = (code && code.js) || '';
 
     // Prevent tag breakout in generated HTML file
-    var safeCss = css.replace(/<\/style>/gi, '<\\/style>');
-    var safeJs = js.replace(/<\/script>/gi, '<\\/script>');
+    var safeCss = css ? css.replace(/<\/style/gi, function () { return '<\\/style'; }) : '';
+    var safeJs = js ? js.replace(/<\/script/gi, function () { return '<\\/script'; }).replace(/<!--/g, '<\\!--') : '';
 
     var styleBlock = safeCss ? '\n  <style>\n' + safeCss + '\n  </style>' : '';
     var scriptBlock = safeJs ? '\n  <script>\n' + safeJs + '\n  </script>' : '';
@@ -117,6 +117,9 @@ var Exporter = {
       var script = document.createElement('script');
       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
       script.onload = doZip;
+      script.onerror = function () {
+        alert('No se pudo cargar la librería para comprimir archivos (.ZIP). Verifica tu conexión a internet.');
+      };
       document.head.appendChild(script);
     } else {
       doZip();
@@ -185,7 +188,7 @@ var Exporter = {
           var url = URL.createObjectURL(blob);
           var a = document.createElement('a');
           a.href = url;
-          a.download = 'educode-studio-v3.0.0-repo.zip';
+          a.download = 'educode-studio-v3.1.0-repo.zip';
           document.body.appendChild(a);
           a.click();
           setTimeout(function () {
@@ -204,6 +207,10 @@ var Exporter = {
       var script = document.createElement('script');
       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
       script.onload = doZip;
+      script.onerror = function () {
+        alert('No se pudo cargar la librería para comprimir archivos (.ZIP). Verifica tu conexión a internet.');
+        if (callback) callback(new Error('JSZip load error'));
+      };
       document.head.appendChild(script);
     } else {
       doZip();

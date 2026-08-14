@@ -93,11 +93,14 @@ var sandbox = {
   parseFloat: parseFloat,
   isNaN: isNaN,
   RegExp: RegExp,
+  btoa: function(str) { return Buffer.from(str, 'binary').toString('base64'); },
+  atob: function(b64) { return Buffer.from(b64, 'base64').toString('binary'); },
   // Will be populated by modules:
   TEMPLATES: undefined,
   CodeRunner: undefined,
   CodeSimulator: undefined,
-  Exporter: undefined
+  Exporter: undefined,
+  ShareLink: undefined
 };
 sandbox.window = sandbox;
 
@@ -109,11 +112,13 @@ loadModule('templates.js');
 loadModule('runner.js');
 loadModule('simulator.js');
 loadModule('exporter.js');
+loadModule('share.js');
 
 var TEMPLATES = sandbox.TEMPLATES;
 var CodeRunner = sandbox.CodeRunner;
 var CodeSimulator = sandbox.CodeSimulator;
 var Exporter = sandbox.Exporter;
+var ShareLink = sandbox.ShareLink;
 
 
 // =====================================================================
@@ -429,6 +434,43 @@ assertContains(TEMPLATES['n13-dialog-interactive'].js, 'showModal', 'Bug#4: JS t
 sim.loadTarget(TEMPLATES['n2-usage-class'], 'css');
 // n2-usage-class: html='<h1 class="center">Heading</h1>', css='.center{...}' → debería quedar en la pestaña pedida si tiene contenido
 assert(sim.activeTab === 'css' || sim.activeTab === 'html', 'Bug#5: template con ambos (html+css) acepta tab pedido');
+
+// =====================================================================
+//  SUITE 6: Seguridad & Robustez (v3.1.0)
+// =====================================================================
+suite('🛡️ SUITE 6: Seguridad & Robustez v3.1.0');
+
+// 1. ShareLink null/empty handling
+assertEq(ShareLink.decode(null), null, 'ShareLink.decode(null) retorna null');
+assertEq(ShareLink.decode(''), null, 'ShareLink.decode("") retorna null');
+assertEq(ShareLink.decode('#code=corrupt_hash!!!'), null, 'ShareLink.decode con hash corrupto retorna null sin crashear');
+
+// 2. ShareLink payload limit (500KB)
+var massiveHash = '#code=' + 'A'.repeat(550 * 1024);
+assertEq(ShareLink.decode(massiveHash), null, 'ShareLink.decode rechaza hash gigante >500KB');
+
+// 3. ShareLink UTF-8 roundtrip
+var originalCode = { html: '<h1>Hola Andrés 🚀</h1>', css: 'body { color: red; }', js: 'console.log("Éxito");' };
+var encodedUrl = ShareLink.encode(originalCode);
+var decodedCode = ShareLink.decode('#code=' + encodedUrl);
+assert(decodedCode !== null, 'ShareLink codifica/decodifica correctamente');
+assertEq(decodedCode.html, originalCode.html, 'ShareLink preserva caracteres UTF-8 en HTML (á, é, 🚀)');
+assertEq(decodedCode.js, originalCode.js, 'ShareLink preserva caracteres UTF-8 en JS');
+
+// 4. CodeRunner sanitización contra Tag Breakout en CSS y JS
+var runnerSec = new CodeRunner(iframe, function() {});
+runnerSec.run({ html: '<h1>Test</h1>', css: 'body { color: red; } </style><script>alert(1)</script>', js: 'var a = 1; </script><script>alert(2)</script>' });
+assert(iframe.srcdoc.indexOf('color: red; } </style>') === -1, 'CodeRunner desinfecta tag breakout en CSS (</style>)');
+assert(iframe.srcdoc.indexOf('var a = 1; </script>') === -1, 'CodeRunner desinfecta tag breakout en JS (</script>)');
+
+// 5. Exporter.downloadSingleHTML desinfección de tag breakout
+var exportedBlob = null;
+var origBlob = global.Blob;
+sandbox.Blob = function(parts) { exportedBlob = parts.join(''); };
+Exporter.downloadSingleHTML({ html: '<p>Hi</p>', css: 'p { color: blue; } </style><script>bad()</script>', js: 'console.log(1); </script>' }, 'test.html');
+sandbox.Blob = origBlob;
+assert(exportedBlob !== null, 'Exporter genera HTML único');
+assert(exportedBlob.indexOf('</style><script>') === -1, 'Exporter desinfecta tag breakout en CSS');
 
 // =====================================================================
 //  RESUMEN

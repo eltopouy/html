@@ -127,6 +127,15 @@ Ejecutar antes de cada commit para garantizar que los cambios no rompen comporta
 
 ## 📝 Historial de Cambios (Changelog)
 
+### **v3.1.0** — *Endurecimiento de Seguridad, Prevención de Vulnerabilidades & Test Suite v3.1* (2026-08-14)
+- 🛡️ **Protección de Archivos Sensibles (`server.js`):** La API `/api/source-files` filtra automáticamente archivos `.env*`, `.git*`, `*.key`, `*.pem`, `firebase-applet-config.json` y binarios para prevenir fugas de credenciales.
+- 🔒 **Endurecimiento de Estáticos:** `express.static` configurado con `{ dotfiles: 'ignore' }` impidiendo acceso a archivos ocultos del sistema.
+- ⚔️ **Prevención de Tag Breakout (XSS):** Sanitización avanzada en `CodeRunner` y `Exporter` que desinfecta evasiones como `</style >`, `</script  >`, `<script/x>` y comentarios HTML `<!--`.
+- 🔗 **Validación de Enlaces Compartibles (`js/share.js`):** Límite estricto de 500KB de payload para prevenir DoS/ReDoS y validación segura contra hashes corruptos.
+- 💾 **Manejo de QuotaExceededError (`js/app.js`):** Notificación amigable mediante Toast al usuario si el almacenamiento local del navegador está lleno.
+- 🌐 **Manejo de Errores de CDN (`js/exporter.js`):** Handler `script.onerror` cuando la librería JSZip no se puede cargar por falta de conexión.
+- 🧪 **Suite 6 & 8 de Testing:** 318 tests automatizados en Node.js y navegador cubriendo seguridad, desinfección, codificación UTF-8 y límites de memoria.
+
 ### **v3.0.0** — *Sistema Pedagógico por Niveles + Testing Automatizado* (2026-08-09)
 - 🎓 **Reestructuración Pedagógica Completa:** 49 ejercicios organizados en **13 niveles progresivos** con código mínimo didáctico. El editor y el simulador muestran únicamente el concepto a enseñar — sin boilerplate.
 - 🔄 **Ensamblado Inteligente de DOM:** El runner genera automáticamente el elemento HTML necesario para visualizar cualquier regla CSS (`h1`, `p`, `h2`, `.center`, `#para`, `.car`) sin que aparezca en el editor del alumno.

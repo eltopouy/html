@@ -570,6 +570,35 @@ TestRunner.suite('🐛 SUITE 7: Tests de Regresión (Bugs Anteriores)', function
 });
 
 // =====================================================================
+//  SUITE 8: SEGURIDAD & ROBUSTEZ v3.1.0
+// =====================================================================
+TestRunner.suite('🛡️ SUITE 8: Seguridad & Robustez v3.1.0', function(t) {
+
+  // ShareLink decoding
+  t.assertEq(ShareLink.decode(null), null, 'ShareLink.decode(null) retorna null');
+  t.assertEq(ShareLink.decode(''), null, 'ShareLink.decode("") retorna null');
+  t.assertEq(ShareLink.decode('#code=corrupt_hash!!!'), null, 'ShareLink.decode con hash corrupto retorna null sin crashear');
+
+  // Payload limit
+  var massiveHash = '#code=' + 'A'.repeat(550 * 1024);
+  t.assertEq(ShareLink.decode(massiveHash), null, 'ShareLink.decode rechaza hash gigante >500KB');
+
+  // UTF-8 preservation
+  var orig = { html: '<h1>Hola 🚀</h1>', css: 'body{color:red;}', js: 'console.log("ok");' };
+  var enc = ShareLink.encode(orig);
+  var dec = ShareLink.decode('#code=' + enc);
+  t.assert(dec !== null, 'ShareLink codifica/decodifica correctamente');
+  t.assertEq(dec.html, orig.html, 'ShareLink preserva caracteres UTF-8 en HTML');
+
+  // Tag breakout
+  var mockIframe = { srcdoc: '' };
+  var runner = new CodeRunner(mockIframe, function(){});
+  runner.run({ html: '<p>X</p>', css: 'p { color: red; } </style><script>alert(1)</script>', js: 'var a = 1; </script><script>alert(2)</script>' });
+  t.assert(mockIframe.srcdoc.indexOf('color: red; } </style>') === -1, 'CodeRunner desinfecta tag breakout en CSS');
+  t.assert(mockIframe.srcdoc.indexOf('var a = 1; </script>') === -1, 'CodeRunner desinfecta tag breakout en JS');
+});
+
+// =====================================================================
 //  RUNNER
 // =====================================================================
 function runAllSuites() {

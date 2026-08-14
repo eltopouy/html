@@ -14,7 +14,7 @@ var CodeRunner = (function () {
     var self = this;
     window.addEventListener('message', function (event) {
       // Security check: Only process messages coming from our own preview iframe contentWindow
-      if (self.iframe && event.source !== self.iframe.contentWindow) return;
+      if (!self.iframe || !self.iframe.contentWindow || event.source !== self.iframe.contentWindow) return;
 
       if (event.data) {
         if (event.data.type === 'CONSOLE_LOG' && self.onConsoleLog) {
@@ -43,9 +43,9 @@ var CodeRunner = (function () {
     var css = (code && code.css) || '';
     var js = (code && code.js) || '';
 
-    // Prevent tag breakout (closing </script> or </style> inside user code)
-    var safeCss = css.replace(/<\/style>/gi, '<\\/style>');
-    var safeJs = js.replace(/<\/script>/gi, '<\\/script>');
+    // Prevent tag breakout (closing </style...> or </script...> or HTML comments inside user code)
+    var safeCss = css ? css.replace(/<\/style/gi, function () { return '<\\/style'; }) : '';
+    var safeJs = js ? js.replace(/<\/script/gi, function () { return '<\\/script'; }).replace(/<!--/g, '<\\!--') : '';
 
     var consoleInterceptor =
       '<script>' +

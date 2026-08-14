@@ -104,7 +104,12 @@
   function saveCodeToLocalStorage(code) {
     try {
       localStorage.setItem('educode_student_code', JSON.stringify(code));
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22)) {
+        console.warn('Almacenamiento local lleno en el navegador.');
+        showToast('Almacenamiento local lleno. Exporta tu trabajo para no perder cambios.', 'warn');
+      }
+    }
   }
 
   function loadSavedCode() {

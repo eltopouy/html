@@ -27,12 +27,22 @@ var ShareLink = (function () {
     try {
       var cleanHash = hashStr.replace(/^#code=/, '');
       if (!cleanHash) return null;
+
+      // Security check: Limit max payload length to 500KB to prevent ReDoS / Memory DoS
+      if (cleanHash.length > 500 * 1024) {
+        console.warn('Share link payload exceeds max allowed size (500KB)');
+        return null;
+      }
+
       var jsonStr = decodeURIComponent(atob(cleanHash));
       var data = JSON.parse(jsonStr);
+
+      if (!data || typeof data !== 'object') return null;
+
       return {
-        html: data.h || '',
-        css: data.c || '',
-        js: data.j || ''
+        html: typeof data.h === 'string' ? data.h : '',
+        css: typeof data.c === 'string' ? data.c : '',
+        js: typeof data.j === 'string' ? data.j : ''
       };
     } catch (e) {
       console.error('Error decoding share link:', e);

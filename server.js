@@ -7,8 +7,17 @@ const PORT = 3000;
 
 // API endpoint to return all project source files for ZIP backup & repo download
 app.get('/api/source-files', (req, res) => {
-  const ignoredDirs = ['.git', 'node_modules'];
-  const ignoredFiles = ['bun.lock'];
+  const ignoredDirs = ['.git', 'node_modules', '.vscode', '.idea'];
+  const ignoredFilePrefixes = ['.env', '.git', '.DS_Store'];
+  const ignoredFiles = ['bun.lock', 'package-lock.json', 'firebase-applet-config.json'];
+  const ignoredExtensions = ['.pem', '.key', '.p12', '.crt', '.sqlite', '.db', '.zip', '.mp4', '.png', '.jpg', '.jpeg', '.gif', '.ico'];
+
+  function isSensitiveOrIgnored(file) {
+    if (ignoredFiles.includes(file)) return true;
+    if (ignoredFilePrefixes.some((prefix) => file.startsWith(prefix))) return true;
+    if (ignoredExtensions.some((ext) => file.toLowerCase().endsWith(ext))) return true;
+    return false;
+  }
 
   function getFiles(dir, base = '') {
     let results = [];
@@ -19,11 +28,11 @@ app.get('/api/source-files', (req, res) => {
       const stat = fs.statSync(filePath);
 
       if (stat && stat.isDirectory()) {
-        if (!ignoredDirs.includes(file)) {
+        if (!ignoredDirs.includes(file) && !file.startsWith('.')) {
           results = results.concat(getFiles(filePath, relPath));
         }
       } else {
-        if (!ignoredFiles.includes(file)) {
+        if (!isSensitiveOrIgnored(file)) {
           let mime = 'text/plain';
           if (file.endsWith('.html')) mime = 'text/html';
           else if (file.endsWith('.css')) mime = 'text/css';
@@ -52,8 +61,8 @@ app.get('/api/source-files', (req, res) => {
   }
 });
 
-// Serve static files from root directory
-app.use(express.static(__dirname));
+// Serve static files safely, ignoring dotfiles like .env
+app.use(express.static(__dirname, { dotfiles: 'ignore' }));
 
 // Fallback to index.html for SPA routing
 app.use((req, res, next) => {
