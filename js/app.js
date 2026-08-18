@@ -309,30 +309,39 @@
 
     var groups = [
       { label: 'Plantilla Inicial', keys: ['blank'] },
-      { label: '🟢 Niveles 1 a 4 — CSS Básico y Selectores', keys: [
-        'n1-selector-basic', 'n1-color', 'n1-background', 'n1-background-rgb',
-        'n1-color-hex', 'n1-text-align', 'n1-font-size', 'n1-font-weight',
-        'n1-border', 'n1-opacity',
-        'n2-selector-element', 'n2-selector-class', 'n2-usage-class', 'n2-selector-id',
-        'n2-usage-id', 'n2-selectors-grouped',
-        'n3-css-combined',
-        'n4-inline-paragraph', 'n4-inline-heading'
+      { label: '📘 1. CURSO DE HTML — Estructura, Enlaces, Listas, Tablas y Forms', keys: [
+        // 1.1 Estructura y Texto
+        'n6-html-structure', 'n5-html-headings', 'n5-html-paragraphs', 'n5-html-emphasis', 'n5-html-break', 'n5-html-hr',
+        // 1.2 Enlaces e Imágenes
+        'html-enlaces', 'n8-img-basic', 'n8-img-width', 'html-figure', 'n8-picture',
+        // 1.3 Listas
+        'html-listas-ul', 'html-listas-ol', 'html-listas-dl',
+        // 1.4 Tablas
+        'html-tabla-basica', 'html-tabla-completa',
+        // 1.5 Formularios
+        'n9-form-simple', 'n9-input-text', 'html-input-password', 'n9-input-number', 'n9-input-date',
+        'html-input-checkbox', 'html-input-radio', 'html-select', 'html-textarea', 'n10-fieldset',
+        'n9-input-submit', 'n9-input-required', 'n9-input-disabled', 'n9-input-size',
+        // 1.6 Multimedia y Semántica
+        'n11-video', 'html-audio', 'n11-embed-video', 'n11-embed-image',
+        'html-semantica', 'html-details', 'n13-dialog-basic',
+        'n7-meta-charset', 'n7-meta-description', 'n7-meta-keywords', 'n7-meta-author', 'n7-meta-viewport'
       ]},
-      { label: '🟡 Niveles 5 a 8 — HTML Fundamental y Estructura', keys: [
-        'n5-html-headings', 'n5-html-paragraphs', 'n5-html-break', 'n5-html-hr', 'n5-html-emphasis',
-        'n6-html-structure',
-        'n7-meta-charset', 'n7-meta-description', 'n7-meta-keywords', 'n7-meta-author', 'n7-meta-viewport',
-        'n8-img-basic', 'n8-img-width', 'n8-picture'
+      { label: '🎨 2. CURSO DE CSS — Selectores, Tipografía, Box Model, Flexbox y Grid', keys: [
+        // 2.1 Fundamentos y Selectores
+        'n1-selector-basic', 'n1-color', 'n1-background', 'n1-background-rgb', 'n1-color-hex',
+        'n2-selector-element', 'n2-selector-class', 'n2-usage-class', 'n2-selector-id', 'n2-usage-id', 'n2-selectors-grouped', 'css-hover',
+        // 2.2 Tipografía
+        'n1-text-align', 'n1-font-size', 'n1-font-weight', 'css-font-family',
+        // 2.3 Box Model
+        'n1-border', 'css-border-radius', 'css-padding-margin', 'css-box-shadow', 'n1-opacity', 'n3-css-combined', 'n4-inline-paragraph', 'n4-inline-heading',
+        // 2.4 Flexbox & Grid
+        'css-flexbox', 'css-grid',
+        // 2.5 Animaciones y Buenas Prácticas
+        'css-keyframes', 'n12-css-comment', 'n12-css-error-semicolon'
       ]},
-      { label: '🟠 Niveles 9 a 11 — Formularios y Multimedia', keys: [
-        'n9-input-text', 'n9-input-number', 'n9-input-date', 'n9-input-submit',
-        'n9-input-required', 'n9-input-disabled', 'n9-input-size', 'n9-form-simple',
-        'n10-fieldset',
-        'n11-video', 'n11-embed-video', 'n11-embed-image'
-      ]},
-      { label: '🔵 Niveles 12 y 13 — Buenas Prácticas y Modales', keys: [
-        'n12-css-comment', 'n12-css-error-semicolon',
-        'n13-dialog-basic', 'n13-dialog-interactive'
+      { label: '⚡ 3. CURSO DE JAVASCRIPT — Consola, DOM, Eventos, Modales y Canvas', keys: [
+        'js-console-log', 'js-dom-text', 'js-modo-oscuro', 'js-contador', 'n13-dialog-interactive', 'js-canvas-animacion'
       ]}
     ];
 
