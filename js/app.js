@@ -11,6 +11,7 @@
 
   var autoRun = true;
   var autoRunTimeout = null;
+  var localStorageSaveTimeout = null;  // Debounce for localStorage saves (300ms)
   var consoleLogs = [];
   var errorCount = 0;
 
@@ -116,6 +117,13 @@
     try {
       var data = localStorage.getItem('educode_student_code');
       if (!data) return null;
+
+      // Security: Reject payloads over 2MB to prevent memory issues
+      if (data.length > 2 * 1024 * 1024) {
+        console.warn('Payload de localStorage demasiado grande. Ignorando.');
+        return null;
+      }
+
       var parsed = JSON.parse(data);
       if (parsed && typeof parsed === 'object') {
         return {
@@ -261,7 +269,12 @@
   // ---- Code Change Handler ----
 
   function onCodeChange(code) {
-    saveCodeToLocalStorage(code);
+    // UX: Debounce localStorage saves at 300ms (separate from 500ms autoRun)
+    clearTimeout(localStorageSaveTimeout);
+    localStorageSaveTimeout = setTimeout(function () {
+      saveCodeToLocalStorage(code);
+    }, 300);
+
     updateBrowserTab(code.html, codeEditor ? codeEditor.currentTab : 'html');
     updateTabCodeDots(code);
 
@@ -1003,15 +1016,17 @@
       if (!codeEditor || !data) return;
       var code = codeEditor.getCode();
       var lineNo = findCodeLine(code.html, data);
+      // Sanitize tagName to prevent any HTML injection in the toast message
+      var safeTag = escapeHTML((data.tagName || '').toLowerCase().replace(/[^a-z0-9]/g, ''));
       if (lineNo !== -1) {
         codeEditor.switchTab('html');
         if (codeEditor.editor && codeEditor.editor.setCursor) {
           codeEditor.editor.setCursor({ line: lineNo, ch: 0 });
           if (codeEditor.editor.focus) codeEditor.editor.focus();
         }
-        showToast('Elemento <' + (data.tagName || '').toLowerCase() + '> en línea ' + (lineNo + 1), 'success');
+        showToast('Elemento <' + safeTag + '> en línea ' + (lineNo + 1), 'success');
       } else {
-        showToast('Elemento <' + (data.tagName || '').toLowerCase() + '> inspeccionado', 'info');
+        showToast('Elemento <' + safeTag + '> inspeccionado', 'info');
       }
     };
 

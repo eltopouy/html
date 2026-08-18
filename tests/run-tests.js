@@ -473,6 +473,499 @@ assert(exportedBlob !== null, 'Exporter genera HTML único');
 assert(exportedBlob.indexOf('</style><script>') === -1, 'Exporter desinfecta tag breakout en CSS');
 
 // =====================================================================
+//  SUITE 7: Seguridad Avanzada — ShareLink por Campo y localStorage
+// =====================================================================
+suite('🔒 SUITE 7: Seguridad Avanzada');
+
+// 7.1 ShareLink: validación de límites expuestos
+assert(typeof ShareLink._MAX_FIELD_LENGTH === 'number', 'ShareLink._MAX_FIELD_LENGTH es un número');
+assert(typeof ShareLink._MAX_TOTAL_LENGTH === 'number', 'ShareLink._MAX_TOTAL_LENGTH es un número');
+assert(ShareLink._MAX_FIELD_LENGTH > 0 && ShareLink._MAX_FIELD_LENGTH <= 500 * 1024, 'MAX_FIELD_LENGTH está en rango razonable (0 - 500KB)');
+assert(ShareLink._MAX_TOTAL_LENGTH > 0 && ShareLink._MAX_TOTAL_LENGTH <= 1024 * 1024, 'MAX_TOTAL_LENGTH está en rango razonable (0 - 1MB)');
+
+// 7.2 ShareLink: campo HTML gigante individual no causa crash
+// Note: 'a'.repeat(300*1024) stays well under total limit after encodeURIComponent (pure ASCII)
+var giantHtml = 'a'.repeat(300 * 1024); // 300 KB > MAX_FIELD_LENGTH de 200KB
+var encodedGiant = ShareLink.encode({ html: giantHtml, css: '', js: '' });
+var decodedGiant = ShareLink.decode('#code=' + encodedGiant);
+assert(decodedGiant !== null, 'ShareLink con HTML gigante retorna objeto (no null)');
+assert(decodedGiant.html.length <= ShareLink._MAX_FIELD_LENGTH, 'ShareLink trunca campo HTML al límite de 200KB');
+
+// 7.3 ShareLink: campo CSS gigante individual no causa crash
+// Use compact ASCII (no spaces) so encodeURIComponent doesn't over-expand
+var giantCss = 'p{color:red}'.repeat(20000); // ~220 KB de puro ASCII
+var encodedGiantCss = ShareLink.encode({ html: '', css: giantCss, js: '' });
+var decodedGiantCss = ShareLink.decode('#code=' + encodedGiantCss);
+assert(decodedGiantCss !== null, 'ShareLink con CSS gigante retorna objeto (no null)');
+assert(decodedGiantCss.css.length <= ShareLink._MAX_FIELD_LENGTH, 'ShareLink trunca campo CSS al límite de 200KB');
+
+// 7.4 ShareLink: campo JS gigante individual no causa crash
+// Use compact ASCII (no spaces) so encodeURIComponent doesn't over-expand
+var giantJs = 'x'.repeat(250 * 1024); // 250 KB de puro ASCII
+var encodedGiantJs = ShareLink.encode({ html: '', css: '', js: giantJs });
+var decodedGiantJs = ShareLink.decode('#code=' + encodedGiantJs);
+assert(decodedGiantJs !== null, 'ShareLink con JS gigante retorna objeto (no null)');
+assert(decodedGiantJs.js.length <= ShareLink._MAX_FIELD_LENGTH, 'ShareLink trunca campo JS al límite de 200KB');
+
+// 7.5 CodeRunner: log individual largo se trunca
+var runnerLogTest = new CodeRunner({ srcdoc: '' }, function() {});
+var longLog = 'x'.repeat(5000); // 5000 chars > MAX_SINGLE_LOG_LENGTH 2000
+var srcdocGenerated = '';
+var runnerLogCapture = new CodeRunner({ srcdoc: '' }, function() {});
+runnerLogCapture.iframe = { srcdoc: '' };
+runnerLogCapture.run({ html: '', css: 'h1{color:red}', js: '' });
+assert(runnerLogCapture.iframe.srcdoc.indexOf('MAX_LOG_LEN') !== -1 || runnerLogCapture.iframe.srcdoc.indexOf('2000') !== -1, 'CodeRunner inyecta límite de longitud de log en consoleInterceptor');
+
+// 7.6 CodeRunner: overflow-x: hidden está en base style del iframe
+var runnerOverflow = new CodeRunner({ srcdoc: '' }, function() {});
+runnerOverflow.run({ html: '', css: '', js: '' });
+assert(runnerOverflow.iframe.srcdoc.indexOf('overflow-x: hidden') !== -1, 'CodeRunner incluye overflow-x: hidden en base style del iframe');
+
+// 7.7 Exporter: descarga HTML incluye charset UTF-8
+var exportHtmlBlob = null;
+var captureBlob2 = global.Blob;
+sandbox.Blob = function(parts) { exportHtmlBlob = parts.join(''); };
+Exporter.downloadSingleHTML({ html: '<p>Hola</p>', css: 'p{color:blue}', js: '' }, 'test.html');
+sandbox.Blob = captureBlob2;
+assert(exportHtmlBlob !== null, 'Exporter.downloadSingleHTML genera contenido');
+assert(exportHtmlBlob.indexOf('charset="UTF-8"') !== -1 || exportHtmlBlob.indexOf("charset='UTF-8'") !== -1, 'Exporter incluye meta charset UTF-8 en HTML generado');
+
+// 7.8 Exporter: HTML exportado no duplica DOCTYPE cuando hay boilerplate
+var exportHtmlFull = null;
+var captureBlob3 = global.Blob;
+sandbox.Blob = function(parts) { exportHtmlFull = parts.join(''); };
+var fullDocHtml = '<!DOCTYPE html><html><head><title>Test</title></head><body><p>Test</p></body></html>';
+Exporter.downloadSingleHTML({ html: fullDocHtml, css: 'p{color:red}', js: '' }, 'test.html');
+sandbox.Blob = captureBlob3;
+var doctypeCount = (exportHtmlFull.match(/<!DOCTYPE/gi) || []).length;
+assertEq(doctypeCount, 1, 'Exporter no duplica <!DOCTYPE en HTML completo (actual=' + doctypeCount + ')');
+
+// =====================================================================
+//  SUITE 8: Calidad Pedagógica del Currículum
+// =====================================================================
+suite('📚 SUITE 8: Calidad Pedagógica del Currículum');
+
+var allTemplateKeys = Object.keys(TEMPLATES);
+
+// 8.1 Templates HTML deben tener al menos algún contenido HTML o estar vacíos intencionalmente
+var htmlCourseKeys = allTemplateKeys.filter(function(k) {
+  return k.indexOf('n5-') === 0 || k.indexOf('n6-') === 0 || k.indexOf('n7-') === 0 ||
+         k.indexOf('n8-') === 0 || k.indexOf('n9-') === 0 || k.indexOf('n10-') === 0 ||
+         k.indexOf('n11-') === 0 || k.indexOf('n13-dialog') === 0 ||
+         k.indexOf('html-') === 0;
+});
+assert(htmlCourseKeys.length >= 30, 'Hay al menos 30 ejercicios del curso HTML. Actual: ' + htmlCourseKeys.length);
+htmlCourseKeys.forEach(function(k) {
+  var t = TEMPLATES[k];
+  assert(t.html.trim().length > 0 || t.explanation.trim().length > 0,
+    'Template HTML "' + k + '" tiene contenido html o al menos explicación');
+});
+
+// 8.2 Templates CSS deben tener reglas CSS no vacías
+var cssCourseKeys = allTemplateKeys.filter(function(k) {
+  return k.indexOf('n1-') === 0 || k.indexOf('n2-') === 0 || k.indexOf('n3-') === 0 ||
+         k.indexOf('n12-') === 0 || k.indexOf('css-') === 0;
+});
+assert(cssCourseKeys.length >= 15, 'Hay al menos 15 ejercicios del curso CSS. Actual: ' + cssCourseKeys.length);
+cssCourseKeys.forEach(function(k) {
+  var t = TEMPLATES[k];
+  // CSS exercises must have EITHER css or html (for inline style examples)
+  assert(t.css.trim().length > 0 || (t.html.trim().length > 0 && t.html.indexOf('style=') !== -1),
+    'Template CSS "' + k + '" tiene reglas CSS o estilo inline en HTML');
+});
+
+// 8.3 Templates JS deben tener código JavaScript
+var jsCourseKeys = allTemplateKeys.filter(function(k) {
+  return k.indexOf('js-') === 0 || k === 'n13-dialog-interactive';
+});
+assert(jsCourseKeys.length >= 5, 'Hay al menos 5 ejercicios del curso JS. Actual: ' + jsCourseKeys.length);
+jsCourseKeys.forEach(function(k) {
+  var t = TEMPLATES[k];
+  assert(t.js.trim().length > 0, 'Template JS "' + k + '" tiene código JavaScript');
+  assert(t.js.indexOf('function') !== -1 || t.js.indexOf('=>') !== -1 ||
+         t.js.indexOf('addEventListener') !== -1 || t.js.indexOf('querySelector') !== -1 ||
+         t.js.indexOf('getElementById') !== -1 || t.js.indexOf('const ') !== -1 ||
+         t.js.indexOf('let ') !== -1 || t.js.indexOf('var ') !== -1 ||
+         t.js.indexOf('console') !== -1 || t.js.indexOf('requestAnimationFrame') !== -1,
+    'Template JS "' + k + '" contiene instrucciones JavaScript reconocibles');
+});
+
+// 8.4 Todos los templates tienen explanation no vacía
+allTemplateKeys.forEach(function(k) {
+  assert(TEMPLATES[k].explanation.trim().length > 20,
+    'Template "' + k + '" tiene explanation con al menos 20 caracteres');
+});
+
+// 8.5 Ningún template CSS puro tiene boilerplate HTML innecesario
+var n1Keys = ['n1-selector-basic','n1-color','n1-background','n1-background-rgb',
+              'n1-color-hex','n1-text-align','n1-font-size','n1-font-weight','n1-border','n1-opacity'];
+n1Keys.forEach(function(k) {
+  assertEq(TEMPLATES[k].html, '', 'N1 template "' + k + '" tiene html vacío (CSS puro sin boilerplate)');
+  assert(TEMPLATES[k].css.trim().length > 0, 'N1 template "' + k + '" tiene CSS con contenido');
+});
+
+// 8.6 Ejercicios con tablas tienen <table> en su HTML
+var tableKeys = allTemplateKeys.filter(function(k) { return k.indexOf('html-tabla') === 0; });
+assert(tableKeys.length >= 2, 'Hay al menos 2 ejercicios de tablas HTML');
+tableKeys.forEach(function(k) {
+  assertContains(TEMPLATES[k].html, '<table', 'Template tabla "' + k + '" contiene <table');
+  assertContains(TEMPLATES[k].html, '<tr', 'Template tabla "' + k + '" contiene <tr');
+});
+
+// 8.7 Ejercicios con listas tienen <ul>, <ol>, o <dl>
+var listKeys = allTemplateKeys.filter(function(k) { return k.indexOf('html-listas') === 0; });
+assert(listKeys.length >= 3, 'Hay al menos 3 ejercicios de listas HTML');
+assert(listKeys.some(function(k) { return TEMPLATES[k].html.indexOf('<ul') !== -1; }), 'Hay ejercicio con <ul>');
+assert(listKeys.some(function(k) { return TEMPLATES[k].html.indexOf('<ol') !== -1; }), 'Hay ejercicio con <ol>');
+assert(listKeys.some(function(k) { return TEMPLATES[k].html.indexOf('<dl') !== -1; }), 'Hay ejercicio con <dl>');
+
+// 8.8 Ejercicio de enlaces tiene href
+assert('html-enlaces' in TEMPLATES, 'Existe template html-enlaces');
+assertContains(TEMPLATES['html-enlaces'].html, 'href=', 'html-enlaces contiene atributo href');
+assertContains(TEMPLATES['html-enlaces'].html, '<a ', 'html-enlaces contiene etiqueta <a>');
+
+// 8.9 Ejercicio de canvas tiene requestAnimationFrame
+assert('js-canvas-animacion' in TEMPLATES, 'Existe template js-canvas-animacion');
+assertContains(TEMPLATES['js-canvas-animacion'].js, 'requestAnimationFrame', 'js-canvas-animacion usa requestAnimationFrame');
+assertContains(TEMPLATES['js-canvas-animacion'].js, 'getContext', 'js-canvas-animacion usa getContext (Canvas 2D)');
+
+// 8.10 Flexbox y Grid exercises tienen las propiedades CSS requeridas
+assert('css-flexbox' in TEMPLATES, 'Existe template css-flexbox');
+assertContains(TEMPLATES['css-flexbox'].css, 'display: flex', 'css-flexbox usa display: flex');
+assert('css-grid' in TEMPLATES, 'Existe template css-grid');
+assertContains(TEMPLATES['css-grid'].css, 'display: grid', 'css-grid usa display: grid');
+
+// =====================================================================
+//  SUITE 9: Helpers de App — Cobertura de Funciones de Utilidad
+// =====================================================================
+suite('🔧 SUITE 9: Helpers de App — Cobertura de Utilidades');
+
+// Recreate escapeHTML in Node context for testing (mirrors app.js implementation)
+function escapeHTML(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// 9.1 escapeHTML — los 5 caracteres peligrosos
+assertEq(escapeHTML('&'), '&amp;', 'escapeHTML: & → &amp;');
+assertEq(escapeHTML('<'), '&lt;', 'escapeHTML: < → &lt;');
+assertEq(escapeHTML('>'), '&gt;', 'escapeHTML: > → &gt;');
+assertEq(escapeHTML('"'), '&quot;', 'escapeHTML: " → &quot;');
+assertEq(escapeHTML("'"), '&#39;', "escapeHTML: ' → &#39;");
+assertEq(escapeHTML('<script>alert(1)</script>'), '&lt;script&gt;alert(1)&lt;/script&gt;', 'escapeHTML sanitiza XSS completo');
+assertEq(escapeHTML('Texto normal sin caracteres especiales'), 'Texto normal sin caracteres especiales', 'escapeHTML no modifica texto limpio');
+assertEq(escapeHTML(''), '', 'escapeHTML con string vacío retorna vacío');
+
+// 9.2 findCodeLine — recrear en Node para testing
+function findCodeLine(htmlCode, elData) {
+  if (!htmlCode || !elData) return -1;
+  var lines = htmlCode.split('\n');
+  var tag = (elData.tagName || '').toLowerCase();
+  var id = elData.id || '';
+  var cls = (elData.className || '').trim().split(/\s+/)[0] || '';
+  var text = (elData.textContent || '').trim();
+  if (id) {
+    for (var i = 0; i < lines.length; i++) {
+      if (lines[i].indexOf('id="' + id + '"') !== -1 || lines[i].indexOf("id='" + id + "'") !== -1) return i;
+    }
+  }
+  if (cls) {
+    for (var j = 0; j < lines.length; j++) {
+      if (lines[j].indexOf(cls) !== -1) return j;
+    }
+  }
+  if (tag && text) {
+    var shortText = text.substring(0, 15);
+    for (var k = 0; k < lines.length; k++) {
+      if (lines[k].toLowerCase().indexOf('<' + tag) !== -1 && lines[k].indexOf(shortText) !== -1) return k;
+    }
+  }
+  if (tag) {
+    for (var m = 0; m < lines.length; m++) {
+      if (lines[m].toLowerCase().indexOf('<' + tag) !== -1) return m;
+    }
+  }
+  return -1;
+}
+
+var sampleHtml = '<html>\n<body>\n  <p id="para">Texto del párrafo.</p>\n  <div class="center">Caja</div>\n  <h1>Encabezado Principal</h1>\n</body>\n</html>';
+
+assertEq(findCodeLine(sampleHtml, { tagName: 'P', id: 'para', className: '', textContent: '' }), 2, 'findCodeLine localiza por id="para"');
+assertEq(findCodeLine(sampleHtml, { tagName: 'DIV', id: '', className: 'center', textContent: '' }), 3, 'findCodeLine localiza por class="center"');
+assertEq(findCodeLine(sampleHtml, { tagName: 'H1', id: '', className: '', textContent: 'Encabezado Principal' }), 4, 'findCodeLine localiza por tag + textContent');
+assertEq(findCodeLine(sampleHtml, { tagName: 'SPAN', id: '', className: '', textContent: '' }), -1, 'findCodeLine retorna -1 cuando no encuentra el elemento');
+assertEq(findCodeLine(null, { tagName: 'P' }), -1, 'findCodeLine retorna -1 con htmlCode null');
+assertEq(findCodeLine(sampleHtml, null), -1, 'findCodeLine retorna -1 con elData null');
+assertEq(findCodeLine('', { tagName: 'P' }), -1, 'findCodeLine retorna -1 con HTML vacío');
+
+// 9.3 ShareLink.encode produce Base64 válido
+var enc = ShareLink.encode({ html: '<h1>Test</h1>', css: 'h1{color:red}', js: '' });
+assert(typeof enc === 'string' && enc.length > 0, 'ShareLink.encode retorna string no vacío');
+assert(/^[A-Za-z0-9+/=]+$/.test(enc), 'ShareLink.encode produce Base64 válido (solo chars permitidos)');
+
+// 9.4 ShareLink.encode con null/undefined no crashea
+assertEq(ShareLink.encode(null), '', 'ShareLink.encode(null) retorna string vacío');
+assertEq(ShareLink.encode(undefined), '', 'ShareLink.encode(undefined) retorna string vacío');
+assertEq(ShareLink.encode({}), ShareLink.encode({ html: '', css: '', js: '' }), 'ShareLink.encode({}) es equivalente a encode vacío');
+
+// 9.5 loadSavedCode (simulado): JSON primitivo retorna null
+function simulateLoadSavedCode(rawString, maxBytes) {
+  maxBytes = maxBytes || 2 * 1024 * 1024;
+  try {
+    if (!rawString) return null;
+    if (rawString.length > maxBytes) return null;
+    var parsed = JSON.parse(rawString);
+    if (parsed && typeof parsed === 'object') {
+      return {
+        html: typeof parsed.html === 'string' ? parsed.html : '',
+        css: typeof parsed.css === 'string' ? parsed.css : '',
+        js: typeof parsed.js === 'string' ? parsed.js : ''
+      };
+    }
+    return null;
+  } catch(e) { return null; }
+}
+
+assert(simulateLoadSavedCode(null) === null, 'loadSavedCode: null retorna null');
+assert(simulateLoadSavedCode('') === null, 'loadSavedCode: string vacío retorna null');
+assert(simulateLoadSavedCode('"cadena"') === null, 'loadSavedCode: JSON primitivo string retorna null');
+assert(simulateLoadSavedCode('42') === null, 'loadSavedCode: JSON primitivo número retorna null');
+assert(simulateLoadSavedCode('null') === null, 'loadSavedCode: JSON null retorna null');
+assert(simulateLoadSavedCode('[1,2,3]') === null || (function() {
+  var r = simulateLoadSavedCode('[1,2,3]');
+  // Arrays are objects, so they enter the object branch; fields default to empty strings
+  return r !== null && r.html === '' && r.css === '' && r.js === '';
+}()), 'loadSavedCode: JSON array no devuelve campos de código (normaliza a vacíos o null)');
+assert(simulateLoadSavedCode('invalid-json') === null, 'loadSavedCode: JSON inválido retorna null');
+assert(simulateLoadSavedCode('x'.repeat(3 * 1024 * 1024), 2 * 1024 * 1024) === null, 'loadSavedCode: payload >2MB retorna null');
+
+var validCode = '{"html":"<h1>Test</h1>","css":"h1{color:red}","js":"console.log(1)"}';
+var loadResult = simulateLoadSavedCode(validCode);
+assert(loadResult !== null, 'loadSavedCode: JSON válido retorna objeto');
+assertEq(loadResult.html, '<h1>Test</h1>', 'loadSavedCode: campo html se recupera correctamente');
+assertEq(loadResult.css, 'h1{color:red}', 'loadSavedCode: campo css se recupera correctamente');
+assertEq(loadResult.js, 'console.log(1)', 'loadSavedCode: campo js se recupera correctamente');
+
+var codeWithNonStrings = '{"html":"<p>Test</p>","css":42,"js":null}';
+var loadResult2 = simulateLoadSavedCode(codeWithNonStrings);
+assert(loadResult2 !== null, 'loadSavedCode: campos no-string no crashean');
+assertEq(loadResult2.css, '', 'loadSavedCode: campo css no-string se normaliza a vacío');
+assertEq(loadResult2.js, '', 'loadSavedCode: campo js null se normaliza a vacío');
+
+// =====================================================================
+//  SUITE 10: Simulator Avanzado — WPM, Burst, Typo, Turbo
+// =====================================================================
+suite('🎹 SUITE 10: Simulator Avanzado — WPM, Burst, Typo y Turbo');
+
+// Setup: crear simulator de prueba aislado
+var mockEditor10 = {
+  switched: null,
+  contents: {},
+  switchTab: function(tab) { this.switched = tab; },
+  setTabContent: function(tab, content) { this.contents[tab] = content; },
+  getCode: function() { return { html: this.contents.html || '', css: this.contents.css || '', js: this.contents.js || '' }; }
+};
+var mockRunner10 = { lastCode: null, run: function(code) { this.lastCode = code; } };
+var sim10 = new CodeSimulator(mockEditor10, mockRunner10, {});
+
+// 10.1 _defaultBaseDelay existe y es razonable
+assert('_defaultBaseDelay' in sim10, 'Simulator tiene propiedad _defaultBaseDelay');
+assertEq(sim10._defaultBaseDelay, sim10.baseDelay, '_defaultBaseDelay coincide con baseDelay inicial');
+
+// 10.2 turbo() guarda _preTurboDelay y cambia baseDelay a 8
+sim10.loadTarget({ html: '', css: 'h1{color:red}', js: '' }, 'css');
+sim10.turbo();
+assertEq(sim10.baseDelay, 8, 'turbo() establece baseDelay=8');
+assert('_preTurboDelay' in sim10, 'turbo() guarda _preTurboDelay');
+
+// 10.3 reset() restaura baseDelay al valor original
+sim10.reset();
+assertEq(sim10.baseDelay, sim10._defaultBaseDelay, 'reset() restaura baseDelay al valor por defecto');
+
+// 10.4 _isInBurstWord detecta palabras clave conocidas
+sim10.loadTarget({ html: '', css: 'body { display: flex; }', js: '' }, 'css');
+var targetCss = 'function document getElementById';
+// Test using the private method via prototype
+var isBurst = CodeSimulator.prototype._isInBurstWord.call(sim10, 'display: flex; background: yellow;', 0);
+assert(typeof isBurst === 'boolean', '_isInBurstWord retorna booleano');
+
+var simBurstTest = new CodeSimulator(mockEditor10, mockRunner10, {});
+simBurstTest.targetCode = { html: '', css: 'display: flex;', js: '' };
+simBurstTest.activeTab = 'css';
+var burstDetected = simBurstTest._isInBurstWord('display: flex;', 0);
+assert(burstDetected === true, '_isInBurstWord detecta "display" como palabra en ráfaga');
+
+var nonBurst = simBurstTest._isInBurstWord('zzz_unknown_word_xyzq', 0);
+assert(nonBurst === false, '_isInBurstWord retorna false para palabras no reconocidas');
+
+// 10.5 _getRealisticTypoChar no retorna el mismo carácter exacto siempre
+var typoResults = [];
+for (var i = 0; i < 50; i++) {
+  typoResults.push(sim10._getRealisticTypoChar('a'));
+}
+var hasAtLeastOneDifferent = typoResults.some(function(c) { return c !== 'a'; });
+assert(hasAtLeastOneDifferent, '_getRealisticTypoChar produce al menos un carácter diferente a "a" en 50 intentos');
+
+// 10.6 _notifyUpdate calcula progress correctamente
+var progressReceived = null;
+var sim10b = new CodeSimulator(mockEditor10, mockRunner10, {
+  onProgress: function(data) { progressReceived = data; }
+});
+sim10b.loadTarget({ html: '', css: 'h1{color:red}', js: '' }, 'css');
+sim10b.targetIndex = 7; // mitad aproximada de 'h1{color'
+sim10b._notifyUpdate();
+assert(progressReceived !== null, '_notifyUpdate llama al callback onProgress');
+assert(typeof progressReceived.progress === 'number', 'onProgress recibe campo progress numérico');
+assert(progressReceived.progress >= 0 && progressReceived.progress <= 100, 'onProgress progress en rango 0-100: ' + progressReceived.progress);
+assert(typeof progressReceived.wpm === 'number', 'onProgress recibe campo wpm numérico');
+assert(typeof progressReceived.isTyping === 'boolean', 'onProgress recibe campo isTyping booleano');
+assert(typeof progressReceived.activeTab === 'string', 'onProgress recibe campo activeTab string');
+
+// 10.7 pause() no modifica targetIndex
+sim10b.loadTarget({ html: '', css: 'h1 { color: red; }', js: '' }, 'css');
+sim10b.targetIndex = 5;
+sim10b.isTyping = true;
+sim10b.pause();
+assertEq(sim10b.targetIndex, 5, 'pause() preserva targetIndex sin modificarlo');
+assertEq(sim10b.isTyping, false, 'pause() establece isTyping=false');
+
+// 10.8 WPM se calcula con datos conocidos
+var sim10c = new CodeSimulator(mockEditor10, mockRunner10, {
+  onProgress: function(d) { progressReceived = d; }
+});
+sim10c.loadTarget({ html: '', css: 'h1{color:red}', js: '' }, 'css');
+// Simular 100 chars escritos en 1 minuto
+sim10c.startTime = Date.now() - 60000;
+sim10c.charactersTyped = 100;
+sim10c._notifyUpdate();
+// WPM = (100 chars / 5) / 1 minuto = 20 WPM
+assert(progressReceived.wpm > 15 && progressReceived.wpm < 25, 'WPM calculado correctamente (100 chars en 1 min ≈ 20 WPM): ' + progressReceived.wpm);
+
+// =====================================================================
+//  SUITE 11: Runner Avanzado — Auto-scaffolding Ampliado
+// =====================================================================
+suite('⚙️  SUITE 11: Runner Avanzado — Auto-Scaffolding y Casos Límite');
+
+var iframe11 = { srcdoc: '' };
+var runner11 = new CodeRunner(iframe11, function() {});
+
+// 11.1 CSS .btn-demo genera un <button> automático
+runner11.run({ html: '', css: '.btn-demo { background: blue; }', js: '' });
+assertContains(iframe11.srcdoc, '<button', 'CSS .btn-demo genera <button> automático en scaffolding');
+assertContains(iframe11.srcdoc, 'btn-demo', 'CSS .btn-demo el elemento tiene class="btn-demo"');
+
+// 11.2 HTML + CSS + JS todos vacíos → genera página HTML válida con DOCTYPE
+runner11.run({ html: '', css: '', js: '' });
+assertContains(iframe11.srcdoc, '<!DOCTYPE html>', 'Run con todo vacío genera <!DOCTYPE html>');
+assertContains(iframe11.srcdoc, '<html', 'Run con todo vacío genera <html>');
+assertContains(iframe11.srcdoc, '</html>', 'Run con todo vacío genera </html>');
+
+// 11.3 CSS dentro del campo CSS que contiene </style> se sanea (el user code no puede hacer breakout)
+// El runner escapa </style> como <\/style> en el string CSS inline.
+// Verificamos que el CSS del usuario no abre un </style> real seguido de <script>.
+runner11.run({ html: '', css: 'p { color: blue; } </style><script>alert("xss")</script>', js: '' });
+// The dangerous pattern '</style><script>' should NOT appear as a raw HTML tag sequence
+// (it will be escaped as '<\/style><script>' which is safe inside a <style> block)
+assert(
+  iframe11.srcdoc.indexOf('</style><script>alert') === -1,
+  'Runner sanea </style> malicioso en campo CSS'
+);
+
+// 11.4 JS con </script> se sanea
+runner11.run({ html: '<p>Test</p>', css: '', js: 'var x = 1; </script><script>alert("xss")</script>' });
+assertNotContains(iframe11.srcdoc, 'var x = 1; </script>', 'Runner sanea </script> malicioso en campo JS');
+
+// 11.5 HTML con boilerplate → no duplica DOCTYPE
+runner11.run({ html: '<!DOCTYPE html><html><head><title>Test</title></head><body><p>Hola</p></body></html>', css: '', js: '' });
+var doctypeCount11 = (iframe11.srcdoc.match(/<!DOCTYPE/gi) || []).length;
+assertEq(doctypeCount11, 1, 'Runner no duplica <!DOCTYPE con HTML completo (actual=' + doctypeCount11 + ')');
+
+// 11.6 overflow-x: hidden está en el srcdoc generado para fragmentos
+runner11.run({ html: '', css: 'h1{color:red}', js: '' });
+assertContains(iframe11.srcdoc, 'overflow-x: hidden', 'Runner incluye overflow-x: hidden en fragmentos HTML');
+
+// 11.7 .car selector genera el elemento correcto
+runner11.run({ html: '', css: '.car { background: green; }', js: '' });
+assertContains(iframe11.srcdoc, 'class="car"', 'CSS .car genera elemento con class="car"');
+
+// 11.8 run(null) y run({}) no crashean y producen HTML
+runner11.run(null);
+assertContains(iframe11.srcdoc, '<!DOCTYPE html>', 'run(null) genera DOCTYPE html válido');
+runner11.run({});
+assertContains(iframe11.srcdoc, '<!DOCTYPE html>', 'run({}) genera DOCTYPE html válido');
+
+// =====================================================================
+//  SUITE 12: Integridad del Selector — Consistencia grupos vs TEMPLATES
+// =====================================================================
+suite('🗂️  SUITE 12: Integridad del Selector de Templates');
+
+// Definir los mismos grupos que en app.js populateTemplateSelector
+var selectorGroups = [
+  { label: 'Plantilla Inicial', keys: ['blank'] },
+  { label: 'HTML', keys: [
+    'n6-html-structure', 'n5-html-headings', 'n5-html-paragraphs', 'n5-html-emphasis', 'n5-html-break', 'n5-html-hr',
+    'html-enlaces', 'n8-img-basic', 'n8-img-width', 'html-figure', 'n8-picture',
+    'html-listas-ul', 'html-listas-ol', 'html-listas-dl',
+    'html-tabla-basica', 'html-tabla-completa',
+    'n9-form-simple', 'n9-input-text', 'html-input-password', 'n9-input-number', 'n9-input-date',
+    'html-input-checkbox', 'html-input-radio', 'html-select', 'html-textarea', 'n10-fieldset',
+    'n9-input-submit', 'n9-input-required', 'n9-input-disabled', 'n9-input-size',
+    'n11-video', 'html-audio', 'n11-embed-video', 'n11-embed-image',
+    'html-semantica', 'html-details', 'n13-dialog-basic',
+    'n7-meta-charset', 'n7-meta-description', 'n7-meta-keywords', 'n7-meta-author', 'n7-meta-viewport'
+  ]},
+  { label: 'CSS', keys: [
+    'n1-selector-basic', 'n1-color', 'n1-background', 'n1-background-rgb', 'n1-color-hex',
+    'n2-selector-element', 'n2-selector-class', 'n2-usage-class', 'n2-selector-id', 'n2-usage-id', 'n2-selectors-grouped', 'css-hover',
+    'n1-text-align', 'n1-font-size', 'n1-font-weight', 'css-font-family',
+    'n1-border', 'css-border-radius', 'css-padding-margin', 'css-box-shadow', 'n1-opacity', 'n3-css-combined', 'n4-inline-paragraph', 'n4-inline-heading',
+    'css-flexbox', 'css-grid',
+    'css-keyframes', 'n12-css-comment', 'n12-css-error-semicolon'
+  ]},
+  { label: 'JS', keys: [
+    'js-console-log', 'js-dom-text', 'js-modo-oscuro', 'js-contador', 'n13-dialog-interactive', 'js-canvas-animacion'
+  ]}
+];
+
+// 12.1 Cada key del selector existe en TEMPLATES
+var allGroupKeys = [];
+selectorGroups.forEach(function(grp) {
+  grp.keys.forEach(function(k) {
+    allGroupKeys.push(k);
+    assert(k in TEMPLATES, 'Key del selector "' + k + '" existe en TEMPLATES');
+  });
+});
+
+// 12.2 No hay duplicados en los grupos del selector
+var keySeen = {};
+var duplicates = [];
+allGroupKeys.forEach(function(k) {
+  if (keySeen[k]) duplicates.push(k);
+  keySeen[k] = true;
+});
+assertEq(duplicates.length, 0, 'No hay keys duplicadas en los grupos del selector. Duplicados: ' + JSON.stringify(duplicates));
+
+// 12.3 Todos los TEMPLATES tienen al menos un grupo que los incluye
+var keysInGroups = {};
+allGroupKeys.forEach(function(k) { keysInGroups[k] = true; });
+var templatesNotInGroups = Object.keys(TEMPLATES).filter(function(k) { return !keysInGroups[k]; });
+assert(templatesNotInGroups.length === 0,
+  'Todos los templates están en al menos un grupo del selector. Sin grupo: ' + JSON.stringify(templatesNotInGroups));
+
+// 12.4 Cantidad total de templates es consistente
+var totalGrouped = allGroupKeys.length;
+var totalTemplates = Object.keys(TEMPLATES).length;
+assertEq(totalGrouped, totalTemplates, 'Cantidad de keys en grupos (' + totalGrouped + ') coincide con total de TEMPLATES (' + totalTemplates + ')');
+
+// 12.5 Grupo HTML tiene más de 30 ejercicios
+assert(selectorGroups[1].keys.length >= 30, 'Grupo HTML tiene ≥30 ejercicios: ' + selectorGroups[1].keys.length);
+
+// 12.6 Grupo CSS tiene más de 20 ejercicios
+assert(selectorGroups[2].keys.length >= 20, 'Grupo CSS tiene ≥20 ejercicios: ' + selectorGroups[2].keys.length);
+
+// 12.7 Grupo JS tiene al menos 5 ejercicios
+assert(selectorGroups[3].keys.length >= 5, 'Grupo JS tiene ≥5 ejercicios: ' + selectorGroups[3].keys.length);
+
+// =====================================================================
 //  RESUMEN
 // =====================================================================
 console.log('\n' + '═'.repeat(60));
@@ -489,3 +982,4 @@ if (failures.length > 0) {
 
 console.log(FAIL === 0 ? '\n\x1b[32m✓ Todos los tests pasaron. Listo para deploy.\x1b[0m' : '\n\x1b[31m✗ Hay tests fallando. Revisar antes de deploy.\x1b[0m');
 process.exit(FAIL > 0 ? 1 : 0);
+

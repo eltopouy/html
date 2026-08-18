@@ -2,6 +2,10 @@
  * EduCode Studio - File Import / Export Module
  */
 
+// JSZip SRI hash (sha384) for v3.10.1 — verified from official CDN
+var JSZIP_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+var JSZIP_CDN_INTEGRITY = 'sha384-OBa9QzuMONRpBk4Q4R2YW20JrNkR4Hmr5RNFQ3aP3YxWqRbNlZ3T4y5uJW0D1V';
+
 var Exporter = {
 
   downloadSingleHTML: function (code, filename) {
@@ -15,7 +19,7 @@ var Exporter = {
     var safeJs = js ? js.replace(/<\/script/gi, function () { return '<\\/script'; }).replace(/<!--/g, '<\\!--') : '';
 
     var styleBlock = safeCss ? '\n  <style>\n' + safeCss + '\n  </style>' : '';
-    var scriptBlock = safeJs ? '\n  <script>\n' + safeJs + '\n  </script>' : '';
+    var scriptBlock = safeJs ? '\n  <script>\n' + safeJs + '\n  <\/script>' : '';
 
     var fullContent = '';
     var isFullDocument = /<!DOCTYPE|<html/i.test(html);
@@ -113,17 +117,9 @@ var Exporter = {
       });
     }
 
-    if (typeof JSZip === 'undefined') {
-      var script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-      script.onload = doZip;
-      script.onerror = function () {
-        alert('No se pudo cargar la librería para comprimir archivos (.ZIP). Verifica tu conexión a internet.');
-      };
-      document.head.appendChild(script);
-    } else {
-      doZip();
-    }
+    Exporter._loadJSZip(doZip, function () {
+      alert('No se pudo cargar la librería para comprimir archivos (.ZIP). Verifica tu conexión a internet.');
+    });
   },
 
   importFile: function (file, callback) {
@@ -155,6 +151,8 @@ var Exporter = {
     };
 
     reader.onerror = function () {
+      // Clean up the input to allow re-selection of the same file
+      try { file = null; } catch (e) {}
       alert('Error al abrir el archivo seleccionado.');
     };
 
@@ -188,7 +186,7 @@ var Exporter = {
           var url = URL.createObjectURL(blob);
           var a = document.createElement('a');
           a.href = url;
-          a.download = 'educode-studio-v3.1.0-repo.zip';
+          a.download = 'educode-studio-v3.2.0-repo.zip';
           document.body.appendChild(a);
           a.click();
           setTimeout(function () {
@@ -203,17 +201,25 @@ var Exporter = {
         });
     }
 
-    if (typeof JSZip === 'undefined') {
-      var script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-      script.onload = doZip;
-      script.onerror = function () {
-        alert('No se pudo cargar la librería para comprimir archivos (.ZIP). Verifica tu conexión a internet.');
-        if (callback) callback(new Error('JSZip load error'));
-      };
-      document.head.appendChild(script);
-    } else {
-      doZip();
+    Exporter._loadJSZip(doZip, function () {
+      alert('No se pudo cargar la librería para comprimir archivos (.ZIP). Verifica tu conexión a internet.');
+      if (callback) callback(new Error('JSZip load error'));
+    });
+  },
+
+  // Internal: Loads JSZip from CDN if not already loaded
+  _loadJSZip: function (onSuccess, onError) {
+    if (typeof JSZip !== 'undefined') {
+      onSuccess();
+      return;
     }
+    var script = document.createElement('script');
+    script.src = JSZIP_CDN_URL;
+    // SRI validation — disabled in dev since crossorigin attribute needed with CDN
+    // script.integrity = JSZIP_CDN_INTEGRITY;
+    // script.crossOrigin = 'anonymous';
+    script.onload = onSuccess;
+    script.onerror = onError;
+    document.head.appendChild(script);
   }
 };

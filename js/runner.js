@@ -1,8 +1,17 @@
 /**
  * EduCode Studio - Code Runner & Sandboxed Preview Module
+ *
+ * NOTA SEGURIDAD: El postMessage usa '*' como targetOrigin de forma intencional.
+ * Este es un entorno educativo local (iframe sandbox srcdoc) que no carga contenido
+ * de terceros. Restringir a window.location.origin no funciona con srcdoc iframes
+ * porque su origen es 'null'. El inspector de mensajes en _initConsoleBridge ya filtra
+ * por event.source === iframe.contentWindow para prevenir escucha de mensajes externos.
  */
 
 var CodeRunner = (function () {
+
+  // Longitud máxima de un único mensaje de consola (caracteres)
+  var MAX_SINGLE_LOG_LENGTH = 2000;
 
   function CodeRunner(iframeElement, onConsoleLog) {
     this.iframe = iframeElement;
@@ -13,7 +22,8 @@ var CodeRunner = (function () {
   CodeRunner.prototype._initConsoleBridge = function () {
     var self = this;
     window.addEventListener('message', function (event) {
-      // Security check: Only process messages coming from our own preview iframe contentWindow
+      // Security: Only process messages from our own preview iframe contentWindow.
+      // This prevents any external page from injecting console logs into the UI.
       if (!self.iframe || !self.iframe.contentWindow || event.source !== self.iframe.contentWindow) return;
 
       if (event.data) {
@@ -47,9 +57,11 @@ var CodeRunner = (function () {
     var safeCss = css ? css.replace(/<\/style/gi, function () { return '<\\/style'; }) : '';
     var safeJs = js ? js.replace(/<\/script/gi, function () { return '<\\/script'; }).replace(/<!--/g, '<\\!--') : '';
 
+    var maxSingleLog = MAX_SINGLE_LOG_LENGTH;
     var consoleInterceptor =
       '<script>' +
       '(function() {' +
+      '  var MAX_LOG_LEN = ' + maxSingleLog + ';' +
       '  var formatArg = function(arg) {' +
       '    if (arg === null) return "null";' +
       '    if (arg === undefined) return "undefined";' +
@@ -76,6 +88,9 @@ var CodeRunner = (function () {
       '      return;' +
       '    }' +
       '    var text = Array.prototype.slice.call(args).map(formatArg).join(" ");' +
+      '    if (text.length > MAX_LOG_LEN) {' +
+      '      text = text.substring(0, MAX_LOG_LEN) + " ... [truncado, ' + maxSingleLog + ' caracteres máx]";' +
+      '    }' +
       '    window.parent.postMessage({' +
       '      type: "CONSOLE_LOG",' +
       '      level: level,' +
@@ -172,6 +187,8 @@ var CodeRunner = (function () {
           bodyContent = '<p id="para">Primer Párrafo.</p>';
         } else if (/^\s*\.car/i.test(safeCss)) {
           bodyContent = '<div class="car">Auto de Ejemplo</div>';
+        } else if (/^\s*\.btn-demo/i.test(safeCss) || /class=["']btn-demo["']/i.test(safeCss)) {
+          bodyContent = '<button class="btn-demo">Botón de Ejemplo</button>';
         } else if (/^\s*p\b/i.test(safeCss)) {
           bodyContent = '<p>Este es un párrafo de prueba.</p>';
         } else if (/^\s*h2\b/i.test(safeCss)) {
@@ -183,7 +200,8 @@ var CodeRunner = (function () {
         }
       }
 
-      var baseStyle = '<style>body { font-family: system-ui, -apple-system, sans-serif; padding: 24px; color: #1e293b; line-height: 1.5; } ' + safeCss + '</style>';
+      // Base styles include overflow-x: hidden to prevent unexpected horizontal scroll
+      var baseStyle = '<style>body { font-family: system-ui, -apple-system, sans-serif; padding: 24px; color: #1e293b; line-height: 1.5; overflow-x: hidden; } ' + safeCss + '</style>';
 
       fullSource =
         '<!DOCTYPE html>' +

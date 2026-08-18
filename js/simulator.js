@@ -69,6 +69,7 @@ var CodeSimulator = (function () {
 
     // Ajustes de Simulación
     this.baseDelay = 32;          // ms por carácter promedio
+    this._defaultBaseDelay = 32;  // valor original para restaurar tras turbo
     this.typoProbability = 0.035;  // 3.5% probabilidad de error
     this.enableSound = true;
     this.enableHumanize = true;
@@ -250,6 +251,9 @@ var CodeSimulator = (function () {
     this.startTime = null;
     this.charactersTyped = 0;
 
+    // Restaurar velocidad original en caso de que se haya usado turbo
+    this.baseDelay = this._defaultBaseDelay;
+
     if (this.editor) {
       if (this.editor.setTabContent) {
         this.editor.setTabContent(this.activeTab, '', true);
@@ -265,6 +269,10 @@ var CodeSimulator = (function () {
   };
 
   CodeSimulator.prototype.turbo = function () {
+    // Guardar el delay original solo si no estamos ya en turbo
+    if (this.baseDelay !== 8) {
+      this._preTurboDelay = this.baseDelay;
+    }
     this.baseDelay = 8;
     if (!this.isTyping) {
       this.start();
