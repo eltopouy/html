@@ -66,14 +66,19 @@ var Exporter = {
   downloadZip: function (code, zipFilename) {
     zipFilename = zipFilename || 'educode-proyecto.zip';
     var html = (code && code.html) || '';
-    var css = (code && code.css) || '';
-    var js = (code && code.js) || '';
+    var css  = (code && code.css)  || '';
+    var js   = (code && code.js)   || '';
+
+    // Security: Sanitize tag breakouts in the HTML file assembled inside the ZIP
+    // (same protection as downloadSingleHTML)
+    var safeCssForHtml = css ? css.replace(/<\/style/gi, function () { return '<\\/style'; }) : '';
+    var safeJsForHtml  = js  ? js.replace(/<\/script/gi, function () { return '<\\/script'; }).replace(/<!--/g, '<\\!--') : '';
 
     function doZip() {
       var zip = new JSZip();
 
       var cssRef = '\n  <link rel="stylesheet" href="styles.css">';
-      var jsRef = '\n  <script src="script.js"><\/script>';
+      var jsRef  = '\n  <script src="script.js"><\/script>';
       var htmlContent = '';
       var isFullDocument = /<!DOCTYPE|<html/i.test(html);
 
@@ -94,6 +99,9 @@ var Exporter = {
           htmlContent = htmlContent + '\n' + jsRef;
         }
       } else {
+        // Use sanitized css/js for the inline fallback preview block
+        var styleBlock = safeCssForHtml ? '\n  <style>\n' + safeCssForHtml + '\n  </style>' : '';
+        var scriptBlock = safeJsForHtml ? '\n  <script>\n' + safeJsForHtml + '\n  <\/script>' : '';
         htmlContent =
           '<!DOCTYPE html>\n<html lang="es">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Proyecto EduCode</title>' +
           cssRef +

@@ -302,7 +302,8 @@ var CodeSimulator = (function () {
   // ---- Helper: Detección de Ráfagas (Burst Words) ----
 
   CodeSimulator.prototype._isInBurstWord = function (targetText, index) {
-    var textAhead = targetText.slice(index, index + 15).toLowerCase();
+    // Use 20-char lookahead to accommodate longer burst words like 'addEventListener' (16 chars)
+    var textAhead = targetText.slice(index, index + 20).toLowerCase();
     for (var i = 0; i < BURST_WORDS.length; i++) {
       if (textAhead.indexOf(BURST_WORDS[i].toLowerCase()) === 0) {
         return true;
