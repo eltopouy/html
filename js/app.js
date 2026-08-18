@@ -306,14 +306,64 @@
     var selector = document.getElementById('template-select');
     if (!selector) return;
     selector.innerHTML = '';
-    var keys = Object.keys(TEMPLATES);
-    for (var i = 0; i < keys.length; i++) {
-      var key = keys[i];
-      var option = document.createElement('option');
-      option.value = key;
-      option.textContent = TEMPLATES[key].name;
-      selector.appendChild(option);
-    }
+
+    var groups = [
+      { label: 'Plantilla Inicial', keys: ['blank'] },
+      { label: '🟢 Niveles 1 a 4 — CSS Básico y Selectores', keys: [
+        'n1-selector-basic', 'n1-color', 'n1-background', 'n1-background-rgb',
+        'n1-color-hex', 'n1-text-align', 'n1-font-size', 'n1-font-weight',
+        'n1-border', 'n1-opacity',
+        'n2-selector-element', 'n2-selector-class', 'n2-usage-class', 'n2-selector-id',
+        'n2-usage-id', 'n2-selectors-grouped',
+        'n3-css-combined',
+        'n4-inline-paragraph', 'n4-inline-heading'
+      ]},
+      { label: '🟡 Niveles 5 a 8 — HTML Fundamental y Estructura', keys: [
+        'n5-html-headings', 'n5-html-paragraphs', 'n5-html-break', 'n5-html-hr', 'n5-html-emphasis',
+        'n6-html-structure',
+        'n7-meta-charset', 'n7-meta-description', 'n7-meta-keywords', 'n7-meta-author', 'n7-meta-viewport',
+        'n8-img-basic', 'n8-img-width', 'n8-picture'
+      ]},
+      { label: '🟠 Niveles 9 a 11 — Formularios y Multimedia', keys: [
+        'n9-input-text', 'n9-input-number', 'n9-input-date', 'n9-input-submit',
+        'n9-input-required', 'n9-input-disabled', 'n9-input-size', 'n9-form-simple',
+        'n10-fieldset',
+        'n11-video', 'n11-embed-video', 'n11-embed-image'
+      ]},
+      { label: '🔵 Niveles 12 y 13 — Buenas Prácticas y Modales', keys: [
+        'n12-css-comment', 'n12-css-error-semicolon',
+        'n13-dialog-basic', 'n13-dialog-interactive'
+      ]}
+    ];
+
+    var allKeys = Object.keys(TEMPLATES);
+    var addedKeys = {};
+
+    groups.forEach(function (grp) {
+      var optgroup = document.createElement('optgroup');
+      optgroup.label = grp.label;
+      grp.keys.forEach(function (k) {
+        if (TEMPLATES[k]) {
+          var opt = document.createElement('option');
+          opt.value = k;
+          opt.textContent = TEMPLATES[k].name;
+          optgroup.appendChild(opt);
+          addedKeys[k] = true;
+        }
+      });
+      if (optgroup.children.length > 0) {
+        selector.appendChild(optgroup);
+      }
+    });
+
+    allKeys.forEach(function (k) {
+      if (!addedKeys[k] && TEMPLATES[k]) {
+        var opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = TEMPLATES[k].name;
+        selector.appendChild(opt);
+      }
+    });
   }
 
   // ---- Layout ----

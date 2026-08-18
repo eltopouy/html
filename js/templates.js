@@ -6,7 +6,7 @@
 
 var TEMPLATES = {
   'blank': {
-    name: '📝 Documento en Blanco',
+    name: '📝 Documento en Blanco (index.html)',
     html: '',
     css: '',
     js: '',
@@ -224,7 +224,7 @@ var TEMPLATES = {
   'n13-dialog-interactive': {
     name: '🔴 N13: Dialog Interactivo (Open / Close)',
     html: '<button command="show-modal" commandfor="dialog">Abrir Ventana</button>\n\n<dialog id="dialog">\n  <p>Esta es una ventana emergente interactiva...</p>\n  <button command="close" commandfor="dialog">Cerrar</button>\n</dialog>',
-    css: 'const dialog = document.getElementById(\'dialog\');\nconst openBtn = document.querySelector(\'[command="show-modal"]\');\nconst closeBtn = document.querySelector(\'[command="close"]\');\n\nif (openBtn && dialog) {\n  openBtn.addEventListener(\'click\', () => dialog.showModal());\n}\nif (closeBtn && dialog) {\n  closeBtn.addEventListener(\'click\', () => dialog.close());\n}',
+    css: '',
     js: 'const dialog = document.getElementById(\'dialog\');\nconst openBtn = document.querySelector(\'[command="show-modal"]\');\nconst closeBtn = document.querySelector(\'[command="close"]\');\n\nif (openBtn && dialog) {\n  openBtn.addEventListener(\'click\', () => dialog.showModal());\n}\nif (closeBtn && dialog) {\n  closeBtn.addEventListener(\'click\', () => dialog.close());\n}',
     explanation: 'Muestra cómo controlar una ventana modal (<dialog>) mediante código JavaScript con los métodos .showModal() y .close().'
   },
@@ -373,6 +373,10 @@ var TEMPLATES = {
     js: '',
     explanation: 'Ejemplo de estilo inline aplicado directamente sobre un encabezado <h1>.'
   },
+
+  // ==========================================
+  // SECCIÓN BUENAS PRÁCTICAS, ERRORES Y MODALES
+  // ==========================================
 
   // NIVEL 12 — ERRORES Y COMENTARIOS CSS
   'n12-css-comment': {

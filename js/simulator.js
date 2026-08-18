@@ -201,12 +201,27 @@ var CodeSimulator = (function () {
         this.activeTab = 'js';
       }
       targetText = this.targetCode[this.activeTab] || '';
-      if (this.editor) this.editor.switchTab(this.activeTab);
     }
 
-    if (this.targetIndex >= targetText.length) {
-      this.reset();
-      targetText = this.targetCode[this.activeTab] || '';
+    if (this.editor && this.editor.switchTab) {
+      this.editor.switchTab(this.activeTab);
+    }
+
+    // If starting fresh or re-starting, clear the active tab content so typing starts from blank
+    if (this.targetIndex === 0 || this.targetIndex >= targetText.length) {
+      this.currentCode = { html: '', css: '', js: '' };
+      this.targetIndex = 0;
+      this.startTime = Date.now();
+      this.charactersTyped = 0;
+      if (this.editor) {
+        if (this.editor.setTabContent) {
+          this.editor.setTabContent(this.activeTab, '', true);
+        } else if (this.editor.setCode) {
+          var clearObj = {};
+          clearObj[this.activeTab] = '';
+          this.editor.setCode(clearObj);
+        }
+      }
     }
 
     this.isTyping = true;
@@ -236,7 +251,15 @@ var CodeSimulator = (function () {
     this.charactersTyped = 0;
 
     if (this.editor) {
-      this.editor.setCode(this.currentCode);
+      if (this.editor.setTabContent) {
+        this.editor.setTabContent(this.activeTab, '', true);
+      } else if (this.editor.setCode) {
+        this.editor.setCode(this.currentCode);
+      }
+    }
+    if (this.runner) {
+      var activeCode = this.editor ? this.editor.getCode() : this.currentCode;
+      this.runner.run(activeCode);
     }
     this._notifyUpdate();
   };
@@ -289,6 +312,10 @@ var CodeSimulator = (function () {
     if (this.targetIndex >= targetText.length) {
       this.isTyping = false;
       this._notifyUpdate();
+      if (this.runner) {
+        var finalCode = this.editor ? this.editor.getCode() : this.currentCode;
+        this.runner.run(finalCode);
+      }
       if (this.callbacks.onComplete) this.callbacks.onComplete();
       return;
     }
@@ -314,7 +341,17 @@ var CodeSimulator = (function () {
       this.playKeySound();
 
       if (this.editor) {
-        this.editor.setCode(this.currentCode, true);
+        if (this.editor.setTabContent) {
+          this.editor.setTabContent(this.activeTab, this.currentCode[this.activeTab], true);
+        } else if (this.editor.setCode) {
+          this.editor.setCode(this.currentCode, true);
+        }
+      }
+
+      // Actualizar vista previa en tiempo real durante el tipeo
+      if (this.runner) {
+        var liveCode = this.editor ? this.editor.getCode() : this.currentCode;
+        this.runner.run(liveCode);
       }
 
       this._notifyUpdate();
@@ -343,7 +380,13 @@ var CodeSimulator = (function () {
       if (!self.isTyping) return;
       if (charsInserted < wrongString.length) {
         self.currentCode[self.activeTab] += wrongString.charAt(charsInserted);
-        if (self.editor) self.editor.setCode(self.currentCode, true);
+        if (self.editor) {
+          if (self.editor.setTabContent) {
+            self.editor.setTabContent(self.activeTab, self.currentCode[self.activeTab], true);
+          } else if (self.editor.setCode) {
+            self.editor.setCode(self.currentCode, true);
+          }
+        }
         self.playKeySound();
         charsInserted++;
         self.timerId = setTimeout(typeWrongChars, self.baseDelay + (Math.random() * 20 - 10));
@@ -357,7 +400,13 @@ var CodeSimulator = (function () {
       if (!self.isTyping) return;
       if (charsInserted > 0) {
         self.currentCode[self.activeTab] = self.currentCode[self.activeTab].slice(0, -1);
-        if (self.editor) self.editor.setCode(self.currentCode, true);
+        if (self.editor) {
+          if (self.editor.setTabContent) {
+            self.editor.setTabContent(self.activeTab, self.currentCode[self.activeTab], true);
+          } else if (self.editor.setCode) {
+            self.editor.setCode(self.currentCode, true);
+          }
+        }
         self.playKeySound();
         charsInserted--;
         self.timerId = setTimeout(backspaceWrongChars, 35 + Math.random() * 15);
